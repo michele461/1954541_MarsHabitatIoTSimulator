@@ -9,14 +9,14 @@ const RABBIT_URL = 'amqp://localhost';
 const QUEUE_NAME = 'normalized_events';
 
 export async function startTelemetryStreamer() {
-    console.log("🚀 Starting Telemetry Streamer with RabbitMQ...");
+    console.log("Starting Telemetry Streamer with RabbitMQ...");
     
     try {
         // 1. Inizializziamo la connessione a RabbitMQ
         const connection = await amqp.connect(RABBIT_URL);
         const channel = await connection.createChannel();
         await channel.assertQueue(QUEUE_NAME, { durable: true });
-        console.log(`🐰 Connected to RabbitMQ. Target Queue: ${QUEUE_NAME}`);
+        console.log(`Connected to RabbitMQ. Target Queue: ${QUEUE_NAME}`);
 
         // 2. Recuperiamo i topic della telemetria
         const response = await axios.get(`${BASE_URL}/telemetry/topics`);
