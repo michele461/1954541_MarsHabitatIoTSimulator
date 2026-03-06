@@ -21,3 +21,11 @@ export interface Rule {
   target_state: "ON" | "OFF";
   is_active: boolean;
 }
+
+export interface Alert {
+  device_id: string;
+  message: string;
+  timestamp: string;
+  actuator: string;
+  state: string;
+}

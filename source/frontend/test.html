@@ -12,13 +12,21 @@
         #connection-status { font-weight: bold; }
         .connected { color: #4caf50; }
         .disconnected { color: #f44336; }
+        
+        /* Alert Styles */
+        #alerts-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .alert-box { background-color: #d32f2f; color: white; padding: 15px; border-radius: 8px; border: 2px solid #ff5252; font-weight: bold; animation: pulse 1.5s infinite; }
+        .alert-actuator { background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; font-family: monospace; float: right; }
+        
         #log { display: flex; flex-direction: column-reverse; gap: 10px; height: 500px; overflow-y: auto; background: #000; padding: 15px; border: 1px solid #333; border-radius: 8px; font-family: 'Courier New', Courier, monospace; }
         .event-card { border-left: 4px solid #ff4500; background: #161b22; padding: 10px; border-radius: 4px; animation: fadeIn 0.3s ease; }
         .device-id { color: #58a6ff; font-weight: bold; font-size: 1.1em; }
         .timestamp { color: #8b949e; font-size: 0.85em; }
         .readings { margin-top: 5px; color: #d2a8ff; }
         .metric-pill { display: inline-block; background: #21262d; padding: 2px 8px; border-radius: 12px; margin-right: 5px; border: 1px solid #30363d; font-size: 0.9em; }
+        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); } 100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); } }
     </style>
 </head>
 <body>
@@ -29,14 +37,15 @@
         System Status: <span id="connection-status" class="disconnected">DISCONNECTED</span>
     </div>
 
-    <div id="log">
-        </div>
+    <div id="alerts-container"></div>
+
+    <div id="log"></div>
 
     <script>
-        // Connection to your microservice (Role 4)
         const socket = io('http://localhost:3001');
         const logDiv = document.getElementById('log');
         const statusText = document.getElementById('connection-status');
+        const alertsContainer = document.getElementById('alerts-container');
 
         socket.on('connect', () => {
             statusText.innerText = "CONNECTED (PORT 3001)";
@@ -48,22 +57,35 @@
             statusText.className = "disconnected";
         });
 
-        // Single sensor update handling
         socket.on('sensor_update', (data) => {
             addEventToDashboard(data);
         });
 
-        // Initial state handling (sensor array)
         socket.on('initial_state', (dataArray) => {
-            logDiv.innerHTML = ""; // Clear if necessary
+            logDiv.innerHTML = ""; 
             dataArray.forEach(data => addEventToDashboard(data));
+        });
+
+        // NEW: Listen for alerts 
+        socket.on('new_alert', (alertData) => {
+            const alertElement = document.createElement('div');
+            alertElement.className = 'alert-box';
+            alertElement.innerHTML = `
+                🚨 EMERGENCY: ${alertData.message}
+                <span class="alert-actuator">Action: ${alertData.actuator} -> ${alertData.state}</span>
+            `;
+            alertsContainer.prepend(alertElement);
+            
+            // Auto-remove the alert after 10 seconds to avoid cluttering
+            setTimeout(() => {
+                alertElement.remove();
+            }, 10000);
         });
 
         function addEventToDashboard(data) {
             const card = document.createElement('div');
             card.className = 'event-card';
 
-            // Transform the readings array into small readable tags
             const readingsHtml = data.readings.map(r => 
                 `<span class="metric-pill"><b>${r.metric}</b>: ${r.value} ${r.unit}</span>`
             ).join('');

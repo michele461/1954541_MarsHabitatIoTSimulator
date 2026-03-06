@@ -1,4 +1,4 @@
-import { NormalizedEvent, Rule } from './types';
+import { NormalizedEvent, Rule, Alert } from './types';
 import { setActuatorState } from './actuatorClient';
 
 function evaluateCondition(value: number, operator: string, threshold: number): boolean {
@@ -12,23 +12,29 @@ function evaluateCondition(value: number, operator: string, threshold: number): 
   }
 }
 
-export async function processEvent(event: NormalizedEvent, rules: Rule[]) {
-  console.log(`\n[BRAIN] Analyzing event from: ${event.device_id}`);
-
-  // Loop through all readings present in the event
+export async function processEvent(
+  event: NormalizedEvent, 
+  rules: Rule[], 
+  onAlert: (alert: Alert) => void
+) {
   for (const reading of event.readings) {
-    // Find all active rules that target this specific metric
     const matchingRules = rules.filter(r => r.is_active && r.condition_metric === reading.metric);
 
     for (const rule of matchingRules) {
-      console.log(`  -> Checking rule '${rule.name}' (${reading.metric} ${rule.condition_operator} ${rule.condition_value})`);
-      
       const isConditionMet = evaluateCondition(reading.value, rule.condition_operator, rule.condition_value);
 
       if (isConditionMet) {
-        console.log(`  *** CONDITION MET! Current value: ${reading.value} ***`);
-        // Call the simulator to change the actuator state
         await setActuatorState(rule.target_actuator, rule.target_state);
+        
+        const newAlert: Alert = {
+          device_id: event.device_id,
+          message: `Rule ${rule.name} triggered: ${reading.metric} is ${reading.value}`,
+          timestamp: new Date().toISOString(),
+          actuator: rule.target_actuator,
+          state: rule.target_state
+        };
+        
+        onAlert(newAlert);
       }
     }
   }
