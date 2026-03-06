@@ -13,21 +13,21 @@ function evaluateCondition(value: number, operator: string, threshold: number): 
 }
 
 export async function processEvent(event: NormalizedEvent, rules: Rule[]) {
-  console.log(`\n[CERVELLO] Analizzo evento da: ${event.device_id}`);
+  console.log(`\n[BRAIN] Analyzing event from: ${event.device_id}`);
 
-  // Cicliamo su tutte le letture presenti nell'evento
+  // Loop through all readings present in the event
   for (const reading of event.readings) {
-    // Troviamo tutte le regole attive che riguardano questa specifica metrica
+    // Find all active rules that target this specific metric
     const matchingRules = rules.filter(r => r.is_active && r.condition_metric === reading.metric);
 
     for (const rule of matchingRules) {
-      console.log(`  -> Controllo regola '${rule.name}' (${reading.metric} ${rule.condition_operator} ${rule.condition_value})`);
+      console.log(`  -> Checking rule '${rule.name}' (${reading.metric} ${rule.condition_operator} ${rule.condition_value})`);
       
       const isConditionMet = evaluateCondition(reading.value, rule.condition_operator, rule.condition_value);
 
       if (isConditionMet) {
-        console.log(`  *** CONDIZIONE SODDISFATTA! Valore attuale: ${reading.value} ***`);
-        // Chiama il simulatore per cambiare lo stato dell'attuatore
+        console.log(`  *** CONDITION MET! Current value: ${reading.value} ***`);
+        // Call the simulator to change the actuator state
         await setActuatorState(rule.target_actuator, rule.target_state);
       }
     }

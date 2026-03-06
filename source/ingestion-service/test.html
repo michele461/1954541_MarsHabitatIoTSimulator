@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,39 +23,39 @@
 </head>
 <body>
 
-    <h1>🚀 Mars Habitat - Live Telemetry</h1>
+    <h1>Mars Habitat - Live Telemetry</h1>
     
     <div class="status-bar">
-        Stato Sistema: <span id="connection-status" class="disconnected">DISCONNESSO</span>
+        System Status: <span id="connection-status" class="disconnected">DISCONNECTED</span>
     </div>
 
     <div id="log">
         </div>
 
     <script>
-        // Connessione al tuo microservizio (Ruolo 4)
+        // Connection to your microservice (Role 4)
         const socket = io('http://localhost:3001');
         const logDiv = document.getElementById('log');
         const statusText = document.getElementById('connection-status');
 
         socket.on('connect', () => {
-            statusText.innerText = "CONNESSO (PORTA 3001)";
+            statusText.innerText = "CONNECTED (PORT 3001)";
             statusText.className = "connected";
         });
 
         socket.on('disconnect', () => {
-            statusText.innerText = "DISCONNESSO";
+            statusText.innerText = "DISCONNECTED";
             statusText.className = "disconnected";
         });
 
-        // Gestione aggiornamento singolo sensore
+        // Single sensor update handling
         socket.on('sensor_update', (data) => {
             addEventToDashboard(data);
         });
 
-        // Gestione stato iniziale (array di sensori)
+        // Initial state handling (sensor array)
         socket.on('initial_state', (dataArray) => {
-            logDiv.innerHTML = ""; // Pulisci se necessario
+            logDiv.innerHTML = ""; // Clear if necessary
             dataArray.forEach(data => addEventToDashboard(data));
         });
 
@@ -63,7 +63,7 @@
             const card = document.createElement('div');
             card.className = 'event-card';
 
-            // Trasformiamo l'array di readings in piccoli tag leggibili
+            // Transform the readings array into small readable tags
             const readingsHtml = data.readings.map(r => 
                 `<span class="metric-pill"><b>${r.metric}</b>: ${r.value} ${r.unit}</span>`
             ).join('');

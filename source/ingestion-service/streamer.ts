@@ -1,6 +1,6 @@
 import axios from 'axios';
 import WebSocket from 'ws';
-import amqp from 'amqplib'; //
+import amqp from 'amqplib'; 
 import { normalizeData } from './normalizer';
 
 const BASE_URL = 'http://localhost:8080/api';
@@ -12,13 +12,13 @@ export async function startTelemetryStreamer() {
     console.log("Starting Telemetry Streamer with RabbitMQ...");
     
     try {
-        // 1. Inizializziamo la connessione a RabbitMQ
+        // 1. Initialize RabbitMQ connection
         const connection = await amqp.connect(RABBIT_URL);
         const channel = await connection.createChannel();
         await channel.assertQueue(QUEUE_NAME, { durable: true });
         console.log(`Connected to RabbitMQ. Target Queue: ${QUEUE_NAME}`);
 
-        // 2. Recuperiamo i topic della telemetria
+        // 2. Fetch telemetry topics
         const response = await axios.get(`${BASE_URL}/telemetry/topics`);
         const topics: string[] = response.data.topics;
         
@@ -33,10 +33,10 @@ export async function startTelemetryStreamer() {
             ws.on('message', (message: string) => {
                 try {
                     const rawData = JSON.parse(message);
-                    const normalized = normalizeData(rawData); //
+                    const normalized = normalizeData(rawData); 
                     
                     if (normalized) {
-                        // 3. Invio al Broker invece che via HTTP
+                        // 3. Send to Broker instead of via HTTP
                         const buffer = Buffer.from(JSON.stringify(normalized));
                         channel.sendToQueue(QUEUE_NAME, buffer);
                         
@@ -51,7 +51,7 @@ export async function startTelemetryStreamer() {
                 console.error(`WebSocket error for ${topic}:`, error);
             });
 
-            // Gestione chiusura pulita
+            // Clean closure handling
             ws.on('close', () => {
                 console.warn(`WebSocket closed for ${topic}.`);
             });

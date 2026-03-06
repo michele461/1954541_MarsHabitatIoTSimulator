@@ -10,26 +10,26 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 
-// 1. LA MEMORIA (In-Memory Caching)
+// 1. THE MEMORY (In-Memory Caching)
 const sensorCache: Record<string, any> = {};
 
-// Configurazione WebSocket per il Frontend
+// WebSocket configuration for the Frontend
 const io = new Server(server, {
   cors: { origin: '*' }
 });
 
 io.on('connection', (socket) => {
-  console.log('🟢 Frontend connesso via WebSocket:', socket.id);
-  // Invia lo stato attuale appena qualcuno si connette
+  console.log('Frontend connected via WebSocket:', socket.id);
+  // Send current state as soon as someone connects
   socket.emit('initial_state', Object.values(sensorCache));
 });
 
-// Endpoint REST per consultare lo stato
+// REST endpoint to query the state
 app.get('/api/state', (req, res) => {
   res.json(Object.values(sensorCache));
 });
 
-// --- LOGICA RABBITMQ AGGIORNATA ---
+// --- UPDATED RABBITMQ LOGIC ---
 const RABBIT_URI = process.env.RABBITMQ_URI || 'amqp://localhost';
 const QUEUE_NAME = process.env.QUEUE_NAME || 'normalized_events';
 
@@ -38,46 +38,46 @@ async function startRabbitMQ() {
     const conn = await amqp.connect(RABBIT_URI);
     const channel = await conn.createChannel();
     
-    // Ci assicuriamo che la coda esista
+    // Ensure the queue exists
     await channel.assertQueue(QUEUE_NAME, { durable: true });
-    console.log(`🐰 Connesso a RabbitMQ. In ascolto sulla coda: ${QUEUE_NAME}`);
+    console.log(`Connected to RabbitMQ. Listening on queue: ${QUEUE_NAME}`);
 
     channel.consume(QUEUE_NAME, (msg) => {
       if (msg !== null) {
         try {
-          const evento = JSON.parse(msg.content.toString());
+          const event = JSON.parse(msg.content.toString());
           
-          // Allineamento con il Ruolo 2: usiamo device_id come chiave univoca
-          const key = evento.device_id; 
+          // Alignment with Role 2: we use device_id as unique key
+          const key = event.device_id; 
           
           if (key) {
-            // Aggiorna la memoria interna
-            sensorCache[key] = evento;
+            // Update internal memory
+            sensorCache[key] = event;
             
-            // Notifica il Frontend (test.html) in tempo reale
-            io.emit('sensor_update', evento);
+            // Notify Frontend (test.html) in real-time
+            io.emit('sensor_update', event);
             
-            console.log(`📦 Messaggio ricevuto da RabbitMQ per: ${key}`);
+            console.log(`Message received from RabbitMQ for: ${key}`);
           } else {
-            console.warn('⚠️ Ricevuto messaggio senza device_id da RabbitMQ');
+            console.warn('Received message without device_id from RabbitMQ');
           }
         } catch (err) {
-          console.error('⚠️ Errore nel parsing del messaggio RabbitMQ:', err);
+          console.error('Error parsing RabbitMQ message:', err);
         }
-        // Conferma la ricezione del messaggio
+        // Confirm message reception
         channel.ack(msg);
       }
     });
 
   } catch (error) {
-    console.warn('❌ Errore connessione RabbitMQ. Riprovo tra 10 secondi...');
+    console.warn('RabbitMQ connection error. Retrying in 10 seconds...');
     setTimeout(startRabbitMQ, 10000); 
   }
 }
 
-// Avvio del server
+// Start the server
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`🚀 State & API Service (Role 4) avviato sulla porta ${PORT}`);
+  console.log(`State & API Service (Role 4) started on port ${PORT}`);
   startRabbitMQ();
 });

@@ -8,36 +8,36 @@ const QUEUE_NAME = 'normalized_events';
 
 async function start() {
   try {
-    console.log(`[SISTEMA] Connessione a RabbitMQ in corso su ${RABBITMQ_URL}...`);
+    console.log(`[SYSTEM] Connecting to RabbitMQ at ${RABBITMQ_URL}...`);
     const connection = await amqp.connect(RABBITMQ_URL);
     const channel = await connection.createChannel();
 
-    // Assicura che la coda esista
+    // Ensure the queue exists
     await channel.assertQueue(QUEUE_NAME, { durable: false });
     
-    console.log(`[SISTEMA] In ascolto sulla coda '${QUEUE_NAME}'. In attesa di dati marziani...`);
+    console.log(`[SYSTEM] Listening on queue '${QUEUE_NAME}'. Waiting for Martian data...`);
 
-    // Inizia ad ascoltare i messaggi
+    // Start consuming messages
     channel.consume(QUEUE_NAME, async (msg) => {
       if (msg !== null) {
         try {
           const eventString = msg.content.toString();
           const event: NormalizedEvent = JSON.parse(eventString);
           
-          // Passa l'evento e le regole al motore logico
+          // Pass the event and rules to the logic engine
           await processEvent(event, mockRules);
           
-          // Conferma a RabbitMQ che il messaggio è stato elaborato
+          // Acknowledge to RabbitMQ that the message was processed
           channel.ack(msg);
         } catch (error) {
-          console.error(`[ERRORE] Elaborazione messaggio fallita:`, error);
-          channel.nack(msg); // Rimette in coda in caso di errore
+          console.error(`[ERROR] Message processing failed:`, error);
+          channel.nack(msg); // Requeue the message in case of error
         }
       }
     });
 
   } catch (error) {
-    console.error('[ERRORE FATALE] Impossibile avviare il servizio:', error);
+    console.error('[FATAL ERROR] Unable to start the service:', error);
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "state-api-service",
   "version": "1.0.0",
-  "description": "Microservizio per In-Memory Caching e Real-Time verso il Frontend",
+  "description": "Microservice for In-Memory Caching and Real-Time Frontend Communication",
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
@@ -9,16 +9,18 @@
     "build": "tsc"
   },
   "dependencies": {
-    "amqplib": "^0.10.3",
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "socket.io": "^4.7.2"
+    "amqplib": "^0.10.9",
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "socket.io": "^4.7.2",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@types/amqplib": "^0.10.1",
-    "@types/cors": "^2.8.13",
-    "@types/express": "^4.17.17",
+    "@types/amqplib": "^0.10.8",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
     "@types/node": "^20.19.37",
+    "@types/ws": "^8.18.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   }

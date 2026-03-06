@@ -2,7 +2,7 @@ import { processEvent } from './src/engine';
 import { mockRules } from './src/mockRules';
 import { NormalizedEvent } from './src/types';
 
-// Simuliamo il JSON che il tuo compagno "Raccoglitore" dovrebbe inviarti
+// We simulate the JSON that your "Ingestion" teammate should send you
 const testEvent: NormalizedEvent = {
   device_id: "greenhouse_temperature",
   timestamp: new Date().toISOString(),
@@ -10,19 +10,19 @@ const testEvent: NormalizedEvent = {
   readings: [
     {
       metric: "greenhouse_temperature",
-      value: 30.5, // 🔴 Valore critico! La regola dice > 28
+      value: 30.5, // Critical value! The rule says > 28
       unit: "C"
     }
   ]
 };
 
 async function runTest() {
-  console.log("🚀 Avvio test del Cervello (senza RabbitMQ)...");
+  console.log("Starting the Brain test (without RabbitMQ)...");
   
-  // Passiamo il finto evento direttamente al tuo motore logico
+  // Pass the mock event directly to your logic engine
   await processEvent(testEvent, mockRules);
   
-  console.log("✅ Test completato!");
+  console.log("Test completed!");
 }
 
 runTest();
