@@ -1,4 +1,4 @@
-import amqp from 'amqplib';
+import * as amqp from 'amqplib';
 import { NormalizedEvent } from './types';
 import { mockRules } from './mockRules';
 import { processEvent } from './engine';
