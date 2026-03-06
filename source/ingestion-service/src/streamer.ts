@@ -3,9 +3,9 @@ import WebSocket from 'ws';
 import amqp from 'amqplib'; 
 import { normalizeData } from './normalizer';
 
-const BASE_URL = 'http://localhost:8080/api';
-const WS_BASE_URL = 'ws://localhost:8080/api';
-const RABBIT_URL = 'amqp://localhost';
+const BASE_URL = process.env.SIMULATOR_BASE_URL || 'http://localhost:8080/api';
+const RABBIT_URL = process.env.RABBIT_URL || 'amqp://localhost';
+const WS_BASE_URL = process.env.WS_BASE_URL || 'ws://localhost:8080/api';
 const QUEUE_NAME = 'normalized_events';
 
 export async function startTelemetryStreamer() {

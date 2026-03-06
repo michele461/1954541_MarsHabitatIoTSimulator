@@ -2,8 +2,8 @@ import axios from 'axios';
 import amqp from 'amqplib'; 
 import { normalizeData } from './normalizer';
 
-const BASE_URL = 'http://localhost:8080/api';
-const RABBIT_URL = 'amqp://localhost';
+const BASE_URL = process.env.SIMULATOR_BASE_URL || 'http://localhost:8080/api';
+const RABBIT_URL = process.env.RABBIT_URL || 'amqp://localhost';
 const QUEUE_NAME = 'normalized_events';
 
 export async function startRestPoller() {

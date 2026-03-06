@@ -1,0 +1,70 @@
+services:
+  # 1. The Mars IoT Simulator provided by the professors
+  mars-simulator:
+    image: mars-iot-simulator:multiarch_v1
+    ports:
+      - "8080:8080"
+    networks:
+      - mars-net
+
+  # 2. The Message Broker (RabbitMQ)
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Web UI port (accessible via browser to monitor queues)
+    networks:
+      - mars-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. Role 2: Ingestion Service (The Data Collector)
+  ingestion-service:
+    build:
+      context: ./source/ingestion-service
+    environment:
+      - SIMULATOR_BASE_URL=http://mars-simulator:8080/api
+      - WS_BASE_URL=ws://mars-simulator:8080/api
+      - RABBIT_URL=amqp://rabbitmq
+    networks:
+      - mars-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mars-simulator:
+        condition: service_started
+
+  # 4. Role 3: Automation Engine (The Brain)
+  automation-engine:
+    build:
+      context: ./source/automation-engine
+    environment:
+      - SIMULATOR_URL=http://mars-simulator:8080
+      - RABBITMQ_URL=amqp://rabbitmq
+    networks:
+      - mars-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  # 5. Role 4: State & API Service (The Memory)
+  state-api-service:
+    build:
+      context: ./source/state-api-service
+    ports:
+      - "3001:3001" # Exposing the port for the React Frontend
+    environment:
+      - RABBITMQ_URI=amqp://rabbitmq
+      - QUEUE_NAME=normalized_events
+    networks:
+      - mars-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+networks:
+  mars-net:
+    driver: bridge
