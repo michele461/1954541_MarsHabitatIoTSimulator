@@ -16,6 +16,10 @@ To handle the heterogeneous nature of the sensors provided by the simulator, all
     }
   ]
 }
+//device_id: maps the sensor_id of REST sensors or the telemetry topic
+//timestamp: maps captured_at or event_time
+//readings: flexible array to support both scalar sensors (a single value) and complex sensors (e.g., particulate or chemistry)
+```
 
 ## 2. Rule Model
 
@@ -39,8 +43,4 @@ Below is the JSON representation of the data model used to store, manage, and ev
   "target_state": "string",          // The desired state to apply to the actuator: "ON" or "OFF"
   "is_active": true                  // Boolean flag to easily enable or disable the rule without deleting it
 }
-
-
-//device_id: maps the sensor_id of REST sensors or the telemetry topic
-//timestamp: maps captured_at or event_time
-//readings: flexible array to support both scalar sensors (a single value) and complex sensors (e.g., particulate or chemistry)
+```
