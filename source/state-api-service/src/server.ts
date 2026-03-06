@@ -10,7 +10,8 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 
-// 1. THE MEMORY (In-Memory Caching)
+// 1. MEMORY (In-Memory Caching)
+// Stores the latest known state for each sensor
 const sensorCache: Record<string, any> = {};
 
 // WebSocket configuration for the Frontend
@@ -20,11 +21,11 @@ const io = new Server(server, {
 
 io.on('connection', (socket) => {
   console.log('Frontend connected via WebSocket:', socket.id);
-  // Send current state as soon as someone connects
+  // Send the current state as soon as a client connects
   socket.emit('initial_state', Object.values(sensorCache));
 });
 
-// REST endpoint to query the state
+// REST Endpoint to query the current state
 app.get('/api/state', (req, res) => {
   res.json(Object.values(sensorCache));
 });
@@ -47,14 +48,14 @@ async function startRabbitMQ() {
         try {
           const event = JSON.parse(msg.content.toString());
           
-          // Alignment with Role 2: we use device_id as unique key
+          // Alignment with Role 2 and Role 3: use device_id as the unique key
           const key = event.device_id; 
           
           if (key) {
-            // Update internal memory
+            // Update internal cache
             sensorCache[key] = event;
             
-            // Notify Frontend (test.html) in real-time
+            // Notify Frontend in real-time
             io.emit('sensor_update', event);
             
             console.log(`Message received from RabbitMQ for: ${key}`);
@@ -64,7 +65,7 @@ async function startRabbitMQ() {
         } catch (err) {
           console.error('Error parsing RabbitMQ message:', err);
         }
-        // Confirm message reception
+        // Acknowledge message receipt
         channel.ack(msg);
       }
     });
@@ -75,9 +76,8 @@ async function startRabbitMQ() {
   }
 }
 
-// Start the server
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`State & API Service (Role 4) started on port ${PORT}`);
+  console.log(`State & API Service started on port ${PORT}`);
   startRabbitMQ();
 });
