@@ -20,6 +20,8 @@ async function start() {
     
     await channel.assertQueue(ALERTS_QUEUE, { durable: true });
     
+    console.log(`[SYSTEM] Listening on queue '${QUEUE_NAME}'. Waiting for Martian data...`);
+
     channel.consume(QUEUE_NAME, async (msg) => {
       if (msg !== null) {
         try {
@@ -32,13 +34,14 @@ async function start() {
           
           channel.ack(msg);
         } catch (error) {
+          console.error(`[ERROR] Message processing failed:`, error);
           channel.nack(msg);
         }
       }
     });
-
   } catch (error) {
-    console.error(error);
+    console.error("RabbitMQ not ready for the Brain. Retrying in 5 seconds...");
+    setTimeout(start, 5000);
   }
 }
 

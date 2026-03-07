@@ -6,19 +6,19 @@ import { normalizeData } from './normalizer';
 const BASE_URL = process.env.SIMULATOR_BASE_URL || 'http://localhost:8080/api';
 const RABBIT_URL = process.env.RABBIT_URL || 'amqp://localhost';
 const WS_BASE_URL = process.env.WS_BASE_URL || 'ws://localhost:8080/api';
-const QUEUE_NAME = 'normalized_events';
+const EXCHANGE_NAME = 'telemetry_fanout';
 
 export async function startTelemetryStreamer() {
     console.log("Starting Telemetry Streamer with RabbitMQ...");
     
     try {
-        // 1. Initialize RabbitMQ connection
         const connection = await amqp.connect(RABBIT_URL);
         const channel = await connection.createChannel();
-        await channel.assertQueue(QUEUE_NAME, { durable: true });
-        console.log(`Connected to RabbitMQ. Target Queue: ${QUEUE_NAME}`);
+        
+        // NEW ARCHITECTURE: Use Exchange instead of Queue
+        await channel.assertExchange(EXCHANGE_NAME, 'fanout', { durable: true });
+        console.log(`Connected to RabbitMQ. Target Exchange: ${EXCHANGE_NAME}`);
 
-        // 2. Fetch telemetry topics
         const response = await axios.get(`${BASE_URL}/telemetry/topics`);
         const topics: string[] = response.data.topics;
         
@@ -36,9 +36,9 @@ export async function startTelemetryStreamer() {
                     const normalized = normalizeData(rawData); 
                     
                     if (normalized) {
-                        // 3. Send to Broker instead of via HTTP
                         const buffer = Buffer.from(JSON.stringify(normalized));
-                        channel.sendToQueue(QUEUE_NAME, buffer);
+                        // PUBLISH TO THE EXCHANGE
+                        channel.publish(EXCHANGE_NAME, '', buffer);
                         
                         console.log(`[RABBIT] Published telemetry: ${normalized.device_id}`);
                     }
@@ -51,12 +51,12 @@ export async function startTelemetryStreamer() {
                 console.error(`WebSocket error for ${topic}:`, error);
             });
 
-            // Clean closure handling
             ws.on('close', () => {
                 console.warn(`WebSocket closed for ${topic}.`);
             });
         }
     } catch (error) {
-        console.error("Critical error in Telemetry Streamer:", error);
+        console.error("RabbitMQ not ready for the Streamer. Retrying in 5 seconds...");
+        setTimeout(startTelemetryStreamer, 5000);
     }
 }

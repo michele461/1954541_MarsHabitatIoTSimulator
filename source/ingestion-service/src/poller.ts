@@ -4,36 +4,32 @@ import { normalizeData } from './normalizer';
 
 const BASE_URL = process.env.SIMULATOR_BASE_URL || 'http://localhost:8080/api';
 const RABBIT_URL = process.env.RABBIT_URL || 'amqp://localhost';
-const QUEUE_NAME = 'normalized_events';
+const EXCHANGE_NAME = 'telemetry_fanout';
 
 export async function startRestPoller() {
     console.log("Starting REST Poller with RabbitMQ...");
     
     try {
-        // 1. Initialize RabbitMQ connection
         const connection = await amqp.connect(RABBIT_URL);
         const channel = await connection.createChannel();
-        await channel.assertQueue(QUEUE_NAME, { durable: true });
-        console.log(`Poller connected to RabbitMQ. Queue: ${QUEUE_NAME}`);
+        
+        // NEW ARCHITECTURE: Use Exchange instead of Queue
+        await channel.assertExchange(EXCHANGE_NAME, 'fanout', { durable: true });
+        console.log(`Poller connected to RabbitMQ. Exchange: ${EXCHANGE_NAME}`);
 
-        // 2. Fetch the list of sensors
         const response = await axios.get(`${BASE_URL}/sensors`);
         const sensors: string[] = response.data.sensors;
         
-        // 3. Polling loop every 5 seconds
         setInterval(async () => {
             for (const sensorId of sensors) {
                 try {
-                    // Fetch raw data from the simulator
                     const sensorData = await axios.get(`${BASE_URL}/sensors/${sensorId}`);
-                    
-                    // Normalize to StandardEvent format
                     const normalized = normalizeData(sensorData.data);
                     
                     if (normalized) {
-                        // SEND TO BROKER (Replaces axios.post)
                         const buffer = Buffer.from(JSON.stringify(normalized));
-                        channel.sendToQueue(QUEUE_NAME, buffer);
+                        // PUBLISH TO THE EXCHANGE INSTEAD OF THE QUEUE
+                        channel.publish(EXCHANGE_NAME, '', buffer);
                         
                         console.log(`[RABBIT] Published sensor: ${normalized.device_id}`);
                     }
@@ -44,6 +40,7 @@ export async function startRestPoller() {
         }, 5000); 
         
     } catch (error) {
-        console.error("Critical error in REST Poller:", error);
+        console.error("RabbitMQ not ready for the Poller. Retrying in 5 seconds...");
+        setTimeout(startRestPoller, 5000);
     }
 }

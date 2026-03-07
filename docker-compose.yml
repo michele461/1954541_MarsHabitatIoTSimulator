@@ -1,5 +1,4 @@
 services:
-  # 1. The Mars IoT Simulator provided by the professors
   mars-simulator:
     image: mars-iot-simulator:multiarch_v1
     ports:
@@ -7,7 +6,7 @@ services:
     networks:
       - mars-net
 
-  # 2. The Message Broker (RabbitMQ)
+  # 1. The Message Broker (RabbitMQ)
   rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -21,7 +20,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # 3. Role 2: Ingestion Service (The Data Collector)
+  # 2. Ingestion Service
   ingestion-service:
     build:
       context: ./source/ingestion-service
@@ -37,7 +36,7 @@ services:
       mars-simulator:
         condition: service_started
 
-  # 4. Role 3: Automation Engine (The Brain)
+  # 3. Automation Engine
   automation-engine:
     build:
       context: ./source/automation-engine
@@ -50,10 +49,11 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # 5. Role 4: State & API Service (The Memory)
+  # 4. State & API Service
   state-api-service:
     build:
       context: ./source/state-api-service
+    restart: always
     ports:
       - "3001:3001" # Exposing the port for the React Frontend
     environment:
