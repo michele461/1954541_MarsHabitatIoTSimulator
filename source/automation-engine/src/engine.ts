@@ -1,6 +1,9 @@
 import { NormalizedEvent, Rule, Alert } from './types';
 import { setActuatorState } from './actuatorClient';
 
+// MEMORY: Tracks the last state sent to avoid spamming the simulator
+const actuatorStateCache: Record<string, string> = {};
+
 function evaluateCondition(value: number, operator: string, threshold: number): boolean {
   switch (operator) {
     case '<': return value < threshold;
@@ -24,17 +27,27 @@ export async function processEvent(
       const isConditionMet = evaluateCondition(reading.value, rule.condition_operator, rule.condition_value);
 
       if (isConditionMet) {
-        await setActuatorState(rule.target_actuator, rule.target_state);
+        // Check what state the actuator is currently in
+        const currentState = actuatorStateCache[rule.target_actuator];
         
-        const newAlert: Alert = {
-          device_id: event.device_id,
-          message: `Rule ${rule.name} triggered: ${reading.metric} is ${reading.value}`,
-          timestamp: new Date().toISOString(),
-          actuator: rule.target_actuator,
-          state: rule.target_state
-        };
-        
-        onAlert(newAlert);
+        // Only act if the state is DIFFERENT from the target state (or if it's the first time)
+        if (currentState !== rule.target_state) {
+          
+          await setActuatorState(rule.target_actuator, rule.target_state);
+          
+          // Update memory with the new state
+          actuatorStateCache[rule.target_actuator] = rule.target_state;
+          
+          const newAlert: Alert = {
+            device_id: event.device_id,
+            message: `Rule ${rule.name} triggered: ${reading.metric} is ${reading.value}`,
+            timestamp: new Date().toISOString(),
+            actuator: rule.target_actuator,
+            state: rule.target_state
+          };
+          
+          onAlert(newAlert);
+        }
       }
     }
   }

@@ -24,6 +24,22 @@ app.get('/api/state', (req, res) => {
   res.json(Object.values(sensorCache));
 });
 
+// REST endpoint to query a specific device's state
+app.get('/api/state/:device_id', (req, res) => {
+  const deviceId = req.params.device_id;
+  const data = sensorCache[deviceId];
+  if (data) {
+    res.json(data);
+  } else {
+    res.status(404).json({ error: 'Device not found' });
+  }
+});
+
+// REST endpoint for health checks
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 const RABBIT_URI = process.env.RABBITMQ_URI || 'amqp://localhost';
 const EXCHANGE_NAME = 'telemetry_fanout';
 const QUEUE_NAME = 'memory_queue';

@@ -49,7 +49,7 @@ Below is the JSON representation of the data model used to store, manage, and ev
 
 
 ## 3. User Stories
-These 25 user stories define the functional requirements for the dashboard, monitoring, and automation engine. Each story is accompanied by a LoFi mockup and specific non-functional requirements (NFRs) documented in the booklets folder.
+These 26 user stories define the functional requirements for the dashboard, monitoring, and automation engine. Each story is accompanied by a LoFi mockup and specific non-functional requirements (NFRs) documented in the booklets folder.
 
 ### REST Sensor Monitoring (Polling)
 1. Greenhouse Temp: As an operator, I want to view the real-time value of the greenhouse_temperature sensor so that I can ensure the plants do not freeze. (NFR: Fast UI update based on the in-memory cache)
@@ -72,9 +72,9 @@ These 25 user stories define the functional requirements for the dashboard, moni
 
 ### Manual Actuator Control
 16. Toggle Fan: As an operator, I want a dashboard button to manually toggle the cooling_fan so that I can force a temperature drop. (NFR: The UI must update the actuator state via REST POST request)
-17. Toggle Humidifier: As an operator, I want to be able to toggle the entrance_humidifier so that I can manually correct excessively dry air.
-18. Toggle Ventilation: As an operator, I want to be able to toggle the hall_ventilation so that I can force air recirculation in the main hall.
-19. Toggle Heater: As an operator, I want to toggle the habitat_heater so that the temperature does not drop below the survival threshold.
+17. Toggle Ventilation: As an operator, I want to be able to toggle the life_support_vent so that I can manually correct oxygen levels.
+18. Toggle Shield: As an operator, I want to be able to toggle the airlock_shield so that I can manually protect the base from radiation.
+19. Toggle Heater: As an operator, I want to toggle the heating_unit so that the temperature does not drop below the survival threshold.
 
 ### Automation Rule Management (Dashboard)
 20. Create Rule: As a system administrator, I want a frontend interface to create a new IF-THEN rule so that the system can react autonomously to environmental changes. (NFR: Rules must be saved in a persistent database)
@@ -82,6 +82,7 @@ These 25 user stories define the functional requirements for the dashboard, moni
 22. Delete Rule: As a system administrator, I want to be able to delete or disable an existing rule so that I can remove obsolete or incorrect automations.
 
 ### Automation Execution (Backend)
-23. Auto-Cooling: As an operator, I want the system to automatically turn ON the cooling_fan if the greenhouse_temperature > 28°C so that the plants do not burn without manual intervention.
-24. Auto-Humidification: As an operator, I want the entrance_humidifier to turn ON automatically if the entrance_humidity drops below 30% so that the air remains comfortable.
-25. Emergency Ventilation: As a safety officer, I want the hall_ventilation to turn ON automatically if the co2_hall levels exceed safe thresholds so that personnel do not suffocate.
+23. Auto-Cooling: As an operator, I want the system to automatically turn ON the cooling_fan if the temperature_c > 28.0 so that the habitat does not overheat without manual intervention.
+24. Emergency Ventilation: As a life support manager, I want the life_support_vent to turn ON automatically if the oxygen_percent < 19.5 so that personnel do not suffocate.
+25. Radiation Lockdown: As a safety officer, I want the airlock_shield to turn ON automatically if the radiation_uSv_h > 0.5 so that astronauts are protected from solar storms.
+26. Auto-Heating: As an operator, I want the heating_unit to turn ON automatically if the temperature_c < 15.0 so that the plants and crew do not freeze.
