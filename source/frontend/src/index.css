@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-mars-dark: #0b0d17;
+  --color-mars-orange: #ff4500;
+  --color-mars-orange-dim: rgba(255, 69, 0, 0.2);
+  --color-mars-surface: #151828;
+  --color-mars-border: #2a2d3d;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+body {
+  background-color: var(--color-mars-dark);
+  color: #e2e8f0;
+  font-family: var(--font-mono);
+}
