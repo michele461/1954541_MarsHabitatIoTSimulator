@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { 
-  Activity, 
-  AlertTriangle, 
-  Battery, 
-  Droplets, 
-  Fan, 
-  FlaskConical, 
-  Heater, 
-  Plus, 
-  Power, 
-  Radio, 
-  Settings2, 
-  Sun, 
-  Thermometer, 
-  Wind, 
+import {
+  Activity,
+  AlertTriangle,
+  Battery,
+  Droplets,
+  Fan,
+  FlaskConical,
+  Heater,
+  Plus,
+  Power,
+  Radio,
+  Settings2,
+  Sun,
+  Thermometer,
+  Wind,
   Zap
 } from 'lucide-react';
 
@@ -34,7 +34,7 @@ type SensorData = {
 
 type ActuatorData = {
   id: string;
-  state: 'ON' | 'OFF';
+  state: 'ON' | 'OFF' | 'UNAVAILABLE';
   name: string;
   icon: React.ReactNode;
 };
@@ -58,17 +58,26 @@ type AutomationRule = {
 const SOCKET_URL = 'http://localhost:3001';
 const ACTUATOR_API_URL = 'http://localhost:8080/api/actuators';
 
+const ACTUATOR_META: Record<string, { name: string; icon: React.ReactNode }> = {
+  cooling_fan: { name: 'Cooling Fan', icon: <Fan size={20} /> },
+  entrance_humidifier: { name: 'Entrance Humidifier', icon: <Droplets size={20} /> },
+  hall_ventilation: { name: 'Hall Ventilation', icon: <Wind size={20} /> },
+  habitat_heater: { name: 'Habitat Heater', icon: <Heater size={20} /> },
+};
+
+const FALLBACK_ACTUATORS: ActuatorData[] = Object.entries(ACTUATOR_META).map(([id, meta]) => ({
+  id,
+  state: 'UNAVAILABLE',
+  name: meta.name,
+  icon: meta.icon,
+}));
+
 export default function App() {
   const [sensors, setSensors] = useState<Record<string, SensorData>>({});
   const [alerts, setAlerts] = useState<AlertData[]>([]);
   const [connected, setConnected] = useState(false);
-  
-  const [actuators, setActuators] = useState<ActuatorData[]>([
-    { id: 'cooling_fan', state: 'OFF', name: 'Cooling Fan', icon: <Fan size={20} /> },
-    { id: 'entrance_humidifier', state: 'OFF', name: 'Entrance Humidifier', icon: <Droplets size={20} /> },
-    { id: 'hall_ventilation', state: 'OFF', name: 'Hall Ventilation', icon: <Wind size={20} /> },
-    { id: 'habitat_heater', state: 'OFF', name: 'Habitat Heater', icon: <Heater size={20} /> },
-  ]);
+
+  const [actuators, setActuators] = useState<ActuatorData[]>(FALLBACK_ACTUATORS);
 
   const [rules, setRules] = useState<AutomationRule[]>([]);
   const [newRule, setNewRule] = useState<Partial<AutomationRule>>({
@@ -118,9 +127,9 @@ export default function App() {
     };
   }, []);
 
-  const toggleActuator = async (id: string, currentState: 'ON' | 'OFF') => {
+  const toggleActuator = async (id: string, currentState: 'ON' | 'OFF' | 'UNAVAILABLE') => {
     const newState = currentState === 'ON' ? 'OFF' : 'ON';
-    
+
     // Optimistic update
     setActuators(prev => prev.map(a => a.id === id ? { ...a, state: newState } : a));
 
@@ -186,11 +195,10 @@ export default function App() {
       {alerts.length > 0 && (
         <div className="mb-8 space-y-2">
           {alerts.map(alert => (
-            <div key={alert.id} className={`p-4 rounded border flex items-start gap-3 ${
-              alert.severity === 'critical' 
-                ? 'bg-red-950/30 border-red-500/50 text-red-400' 
-                : 'bg-yellow-950/30 border-yellow-500/50 text-yellow-400'
-            }`}>
+            <div key={alert.id} className={`p-4 rounded border flex items-start gap-3 ${alert.severity === 'critical'
+              ? 'bg-red-950/30 border-red-500/50 text-red-400'
+              : 'bg-yellow-950/30 border-yellow-500/50 text-yellow-400'
+              }`}>
               <AlertTriangle className="shrink-0 mt-0.5" size={18} />
               <div className="flex-1">
                 <div className="flex justify-between items-center">
@@ -205,7 +213,7 @@ export default function App() {
       )}
 
       <div className="flex flex-col gap-8">
-        
+
         {/* Top Section: Data Streams */}
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
@@ -213,21 +221,21 @@ export default function App() {
               <Activity className="text-[var(--color-mars-orange)]" size={20} />
               <h2 className="text-xl font-semibold uppercase tracking-widest text-slate-300">Data Streams</h2>
             </div>
-            
+
             <div className="flex bg-slate-900 rounded-lg p-1 border border-[var(--color-mars-border)]">
-              <button 
+              <button
                 onClick={() => setDataFilter('ALL')}
                 className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${dataFilter === 'ALL' ? 'bg-[var(--color-mars-orange-dim)] text-[var(--color-mars-orange)]' : 'text-slate-500 hover:text-slate-300'}`}
               >
                 All
               </button>
-              <button 
+              <button
                 onClick={() => setDataFilter('SENSORS')}
                 className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${dataFilter === 'SENSORS' ? 'bg-[var(--color-mars-orange-dim)] text-[var(--color-mars-orange)]' : 'text-slate-500 hover:text-slate-300'}`}
               >
                 Sensors
               </button>
-              <button 
+              <button
                 onClick={() => setDataFilter('TELEMETRY')}
                 className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${dataFilter === 'TELEMETRY' ? 'bg-[var(--color-mars-orange-dim)] text-[var(--color-mars-orange)]' : 'text-slate-500 hover:text-slate-300'}`}
               >
@@ -235,7 +243,7 @@ export default function App() {
               </button>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {Object.values(sensors).length === 0 ? (
               <div className="col-span-full p-8 border border-dashed border-[var(--color-mars-border)] rounded-lg text-center text-slate-500">
@@ -250,41 +258,41 @@ export default function App() {
                   return true;
                 })
                 .map(sensor => (
-                <div key={sensor.device_id} className="bg-[var(--color-mars-surface)] border border-[var(--color-mars-border)] rounded-lg p-5 hover:border-[var(--color-mars-orange-dim)] transition-colors flex flex-col">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex flex-col">
-                      <div className="text-xs text-slate-500 uppercase tracking-wider break-all pr-2">
-                        {sensor.device_id.replace(/_/g, ' ')}
-                      </div>
-                      <div className="text-[10px] text-slate-600 mt-1">
-                        {new Date(sensor.timestamp).toLocaleTimeString()}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${sensor.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                      {getSensorIcon(sensor.device_id)}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-3 mt-auto">
-                    {sensor.readings?.map((reading, idx) => (
-                      <div key={idx} className="flex items-baseline justify-between border-t border-[var(--color-mars-border)] pt-2 mt-1 first:border-0 first:pt-0 first:mt-0">
-                        <span className="text-slate-400 text-xs uppercase tracking-wider">{reading.metric.replace(/_/g, ' ')}</span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl font-bold text-white">{typeof reading.value === 'number' ? reading.value.toFixed(1) : reading.value}</span>
-                          <span className="text-slate-500 text-xs">{reading.unit}</span>
+                  <div key={sensor.device_id} className="bg-[var(--color-mars-surface)] border border-[var(--color-mars-border)] rounded-lg p-5 hover:border-[var(--color-mars-orange-dim)] transition-colors flex flex-col">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex flex-col">
+                        <div className="text-xs text-slate-500 uppercase tracking-wider break-all pr-2">
+                          {sensor.device_id.replace(/_/g, ' ')}
+                        </div>
+                        <div className="text-[10px] text-slate-600 mt-1">
+                          {new Date(sensor.timestamp).toLocaleTimeString()}
                         </div>
                       </div>
-                    ))}
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${sensor.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        {getSensorIcon(sensor.device_id)}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-3 mt-auto">
+                      {sensor.readings?.map((reading, idx) => (
+                        <div key={idx} className="flex items-baseline justify-between border-t border-[var(--color-mars-border)] pt-2 mt-1 first:border-0 first:pt-0 first:mt-0">
+                          <span className="text-slate-400 text-xs uppercase tracking-wider">{reading.metric.replace(/_/g, ' ')}</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold text-white">{typeof reading.value === 'number' ? reading.value.toFixed(1) : reading.value}</span>
+                            <span className="text-slate-500 text-xs">{reading.unit}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))
+                ))
             )}
           </div>
         </div>
 
         {/* Bottom Section: Controls & Rules */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+
           {/* Actuators */}
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -305,11 +313,13 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => toggleActuator(actuator.id, actuator.state)}
-                    className={`px-4 py-2 rounded font-bold text-xs tracking-wider uppercase transition-all ${
-                      actuator.state === 'ON' 
-                        ? 'bg-[var(--color-mars-orange)] text-white shadow-[0_0_15px_rgba(255,69,0,0.4)]' 
-                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                    }`}
+                    disabled={actuator.state === 'UNAVAILABLE'}
+                    className={`px-4 py-2 rounded font-bold text-xs tracking-wider uppercase transition-all ${actuator.state === 'ON'
+                        ? 'bg-[var(--color-mars-orange)] text-white shadow-[0_0_15px_rgba(255,69,0,0.4)]'
+                        : actuator.state === 'UNAVAILABLE'
+                          ? 'bg-slate-900 text-slate-600 cursor-not-allowed'
+                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      }`}
                   >
                     {actuator.state}
                   </button>
@@ -324,25 +334,25 @@ export default function App() {
               <Zap className="text-[var(--color-mars-orange)]" size={20} />
               <h2 className="text-xl font-semibold uppercase tracking-widest text-slate-300">Automation</h2>
             </div>
-            
+
             <div className="bg-[var(--color-mars-surface)] border border-[var(--color-mars-border)] rounded-lg p-4 mb-4">
               <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-3">New Rule</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-slate-400">IF</span>
-                  <input 
-                    type="text" 
-                    placeholder="sensor_id" 
+                  <input
+                    type="text"
+                    placeholder="sensor_id"
                     className="flex-1 bg-slate-900 border border-[var(--color-mars-border)] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[var(--color-mars-orange)]"
                     value={newRule.sensor_id || ''}
-                    onChange={e => setNewRule({...newRule, sensor_id: e.target.value})}
+                    onChange={e => setNewRule({ ...newRule, sensor_id: e.target.value })}
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <select 
+                  <select
                     className="bg-slate-900 border border-[var(--color-mars-border)] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[var(--color-mars-orange)]"
                     value={newRule.operator || '>'}
-                    onChange={e => setNewRule({...newRule, operator: e.target.value as any})}
+                    onChange={e => setNewRule({ ...newRule, operator: e.target.value as any })}
                   >
                     <option value="<">&lt;</option>
                     <option value="<=">&lt;=</option>
@@ -350,36 +360,36 @@ export default function App() {
                     <option value=">">&gt;</option>
                     <option value=">=">&gt;=</option>
                   </select>
-                  <input 
-                    type="number" 
-                    placeholder="value" 
+                  <input
+                    type="number"
+                    placeholder="value"
                     className="flex-1 bg-slate-900 border border-[var(--color-mars-border)] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[var(--color-mars-orange)]"
                     value={newRule.value || ''}
-                    onChange={e => setNewRule({...newRule, value: parseFloat(e.target.value)})}
+                    onChange={e => setNewRule({ ...newRule, value: parseFloat(e.target.value) })}
                   />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-slate-400">THEN</span>
-                  <select 
+                  <select
                     className="flex-1 bg-slate-900 border border-[var(--color-mars-border)] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[var(--color-mars-orange)]"
                     value={newRule.actuator_id || ''}
-                    onChange={e => setNewRule({...newRule, actuator_id: e.target.value})}
+                    onChange={e => setNewRule({ ...newRule, actuator_id: e.target.value })}
                   >
                     <option value="">Select Actuator...</option>
                     {actuators.map(a => (
                       <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
                   </select>
-                  <select 
+                  <select
                     className="bg-slate-900 border border-[var(--color-mars-border)] rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[var(--color-mars-orange)]"
                     value={newRule.action || 'ON'}
-                    onChange={e => setNewRule({...newRule, action: e.target.value as any})}
+                    onChange={e => setNewRule({ ...newRule, action: e.target.value as any })}
                   >
                     <option value="ON">ON</option>
                     <option value="OFF">OFF</option>
                   </select>
                 </div>
-                <button 
+                <button
                   onClick={handleAddRule}
                   disabled={!newRule.sensor_id || !newRule.actuator_id || newRule.value === undefined}
                   className="w-full mt-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 py-2 rounded text-sm uppercase tracking-wider font-bold flex items-center justify-center gap-2 transition-colors"
@@ -406,7 +416,7 @@ export default function App() {
                       <span className="text-green-400">{rule.actuator_id}</span>
                       <span className={rule.action === 'ON' ? 'text-[var(--color-mars-orange)]' : 'text-slate-500'}>{rule.action}</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setRules(rules.filter(r => r.id !== rule.id))}
                       className="text-slate-600 hover:text-red-400 p-1"
                     >
