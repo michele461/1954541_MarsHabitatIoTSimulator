@@ -1,0 +1,29 @@
+{
+  "name": "automation-engine",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev src/index.ts",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "0.10.9",
+    "axios": "1.13.6",
+    "mongoose": "9.2.4",
+    "common.constants": "workspace:*",
+    "common.types": "workspace:*",
+    "common.functions": "workspace:*",
+    "driver.mongo": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.37",
+    "@types/amqplib": "0.10.8",
+    "@types/mongoose": "5.11.96",
+    "typescript": "5.9.3"
+  }
+}

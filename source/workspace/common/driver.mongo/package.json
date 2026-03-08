@@ -1,0 +1,22 @@
+{
+  "name": "driver.mongo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "mongodb": "6.3.0",
+    "common.types": "workspace:*",
+    "common.functions": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.37",
+    "typescript": "5.9.3"
+  }
+}
