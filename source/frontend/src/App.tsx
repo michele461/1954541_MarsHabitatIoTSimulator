@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
   Activity,
@@ -89,6 +89,68 @@ export default function App() {
 
   const [dataFilter, setDataFilter] = useState<'ALL' | 'SENSORS' | 'TELEMETRY'>('ALL');
 
+  // --- HOVER VIDEO POPUP STATE ---
+  const [hoveredActuator, setHoveredActuator] = useState<string | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnterActuator = (id: string) => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredActuator(id);
+    }, 1000); // 1 secondo di hover prima di mostrare il video
+  };
+
+  const handleMouseLeaveActuator = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setHoveredActuator(null);
+  };
+
+
+  type MediaConfig = {
+    type: 'video' | 'image';
+    src: string;
+  };
+
+  // Funzione per ottenere il video o foto in base allo stato
+  const getMediaForActuator = (id: string, state: string): MediaConfig => {
+    const normalizedState = (state || '').toUpperCase();
+
+    if (normalizedState === 'UNAVAILABLE') {
+      return {
+        type: 'video',
+        src: '/media/fallback_unavaible.mp4',
+      };
+    }
+
+    switch (id) {
+      case 'cooling_fan':
+        return normalizedState === 'ON'
+          ? { type: 'video', src: '/media/cooling_fan_ON.mp4' }
+          : { type: 'image', src: '/media/cooling_fan_OFF.png' };
+
+      case 'habitat_heater':
+        return normalizedState === 'ON'
+          ? { type: 'video', src: '/media/habitat_heater_ON.mp4' }
+          : { type: 'image', src: '/media/habitat_heater_OFF.png' };
+
+      case 'entrance_humidifier':
+        return normalizedState === 'ON'
+          ? { type: 'video', src: '/media/entrance_humidifier_ON.mp4' }
+          : { type: 'image', src: '/media/entrance_humidifier_OFF.png' };
+
+      case 'hall_ventilation':
+        return normalizedState === 'ON'
+          ? { type: 'video', src: '/media/hall_ventilation_ON.mp4' }
+          : { type: 'image', src: '/media/hall_ventilation_OFF.png' };
+
+      default:
+        return {
+          type: 'video',
+          src: '/media/fallback_unavaible.mp4',
+        };
+    }
+  };
+  // -------------------------------
+
   const isTelemetry = (id: string) => {
     const telemetryIds = ['solar_array', 'power_bus', 'radiation', 'life_support', 'thermal_loop', 'airlock'];
     return telemetryIds.some(t => id.includes(t));
@@ -103,7 +165,7 @@ export default function App() {
       if (json.success) {
         const mapped = Object.entries(json.data).map(([id, state]) => ({
           id,
-          state,
+          state: state as 'ON' | 'OFF' | 'UNAVAILABLE',
           name: ACTUATOR_META[id]?.name || id,
           icon: ACTUATOR_META[id]?.icon
         }));
@@ -115,8 +177,9 @@ export default function App() {
     }
   };
 
-  fetchActuators();
-
+  useEffect(() => {
+    fetchActuators();
+  }, []);
 
   useEffect(() => {
     const socket: Socket = io(SOCKET_URL);
@@ -339,8 +402,13 @@ export default function App() {
               <h2 className="text-xl font-semibold uppercase tracking-widest text-slate-300">Actuators</h2>
             </div>
             <div className="space-y-3">
-              {actuators.map(actuator => (
-                <div key={actuator.id} className="bg-[var(--color-mars-surface)] border border-[var(--color-mars-border)] rounded-lg p-4 flex items-center justify-between">
+              {actuators.map((actuator, index) => (
+                <div
+                  key={actuator.id}
+                  className="relative bg-[var(--color-mars-surface)] border border-[var(--color-mars-border)] rounded-lg p-4 flex items-center justify-between transition-colors hover:border-[var(--color-mars-orange-dim)]"
+                  onMouseEnter={() => handleMouseEnterActuator(actuator.id)}
+                  onMouseLeave={handleMouseLeaveActuator}
+                >
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded ${actuator.state === 'ON' ? 'bg-[var(--color-mars-orange-dim)] text-[var(--color-mars-orange)]' : 'bg-slate-800 text-slate-500'}`}>
                       {actuator.icon}
@@ -362,6 +430,57 @@ export default function App() {
                   >
                     {actuator.state}
                   </button>
+
+                  {/* VIDEO POPUP (Security Camera Style) */}
+                  {hoveredActuator === actuator.id && (() => {
+                    const media = getMediaForActuator(actuator.id, actuator.state);
+
+                    return (
+                      <div className="absolute bottom-full right-0 mb-2 z-50 w-64 aspect-video bg-black border border-[var(--color-mars-border)] rounded-lg overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-bottom-2 duration-200">
+                        {/* Camera Overlay UI */}
+                        <div className="absolute top-2 left-2 flex items-center gap-2 z-10">
+                          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                          <span className="text-[10px] font-mono text-white/90 bg-black/60 px-1.5 py-0.5 rounded">
+                            CAM-0{index + 1}
+                          </span>
+                        </div>
+
+                        <div className="absolute bottom-2 left-2 z-10">
+                          <span
+                            className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${actuator.state === 'ON'
+                                ? 'text-[var(--color-mars-orange)] bg-black/60'
+                                : actuator.state === 'UNAVAILABLE'
+                                  ? 'text-red-300 bg-black/60'
+                                  : 'text-slate-400 bg-black/60'
+                              }`}
+                          >
+                            {actuator.state}
+                          </span>
+                        </div>
+
+                        {/* Dynamic Media Element */}
+                        {media.type === 'video' ? (
+                          <video
+                            src={media.src}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover opacity-80 grayscale contrast-125"
+                          />
+                        ) : (
+                          <img
+                            src={media.src}
+                            alt={`${actuator.id} ${actuator.state}`}
+                            className="w-full h-full object-cover opacity-80 grayscale contrast-125"
+                          />
+                        )}
+
+                        {/* Scanline Effect */}
+                        <div className="absolute inset-0 pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSJ0cmFuc3BhcmVudCI+PC9yZWN0Pgo8bGluZSB4MT0iMCIgeTE9IjAiIHgyPSI0IiB5Mj0iMCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiIHN0cm9rZS13aWR0aD0iMSI+PC9saW5lPgo8L3N2Zz4=')] opacity-30 mix-blend-overlay"></div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
