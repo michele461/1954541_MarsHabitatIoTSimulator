@@ -16,7 +16,7 @@ export function normalizeData(rawData: any): StandardEvent | undefined {
                 readings.push({ metric: rawData.metric, value: rawData.value, unit: rawData.unit });
             }
             // rest.chemistry.v1 (e.g., hydroponic_ph, air_quality_voc)
-            else if (rawData.measurement && Array.isArray(rawData.measurements)) {
+            else if (rawData.measurements && Array.isArray(rawData.measurements)) {
                 for (const m of rawData.measurements) {
                     readings.push({ metric: m.metric, value: m.value, unit: m.unit });
                 }

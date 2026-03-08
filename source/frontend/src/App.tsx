@@ -57,6 +57,8 @@ type AutomationRule = {
 
 const SOCKET_URL = 'http://localhost:3001';
 const ACTUATOR_API_URL = 'http://localhost:3001/api/actuators';
+const ACTUATOR_GET = `${ACTUATOR_API_URL}/get`;
+const ACTUATOR_SET = `${ACTUATOR_API_URL}/setState`;
 
 const ACTUATOR_META: Record<string, { name: string; icon: React.ReactNode }> = {
   cooling_fan: { name: 'Cooling Fan', icon: <Fan size={20} /> },
@@ -91,6 +93,30 @@ export default function App() {
     const telemetryIds = ['solar_array', 'power_bus', 'radiation', 'life_support', 'thermal_loop', 'airlock'];
     return telemetryIds.some(t => id.includes(t));
   };
+
+  // fetch initial actuator state
+  const fetchActuators = async () => {
+    try {
+      const res = await fetch(ACTUATOR_GET);
+      const json = await res.json();
+
+      if (json.success) {
+        const mapped = Object.entries(json.data).map(([id, state]) => ({
+          id,
+          state,
+          name: ACTUATOR_META[id]?.name || id,
+          icon: ACTUATOR_META[id]?.icon
+        }));
+
+        setActuators(mapped);
+      }
+    } catch (err) {
+      console.error("Failed to fetch actuators", err);
+    }
+  };
+
+  fetchActuators();
+
 
   useEffect(() => {
     const socket: Socket = io(SOCKET_URL);
@@ -128,23 +154,36 @@ export default function App() {
   }, []);
 
   const toggleActuator = async (id: string, currentState: 'ON' | 'OFF' | 'UNAVAILABLE') => {
+
+    if (currentState === 'UNAVAILABLE') return;
+
     const newState = currentState === 'ON' ? 'OFF' : 'ON';
 
-    // Optimistic update
-    setActuators(prev => prev.map(a => a.id === id ? { ...a, state: newState } : a));
+    setActuators(prev =>
+      prev.map(a => a.id === id ? { ...a, state: newState } : a)
+    );
 
     try {
-      await fetch(`${ACTUATOR_API_URL}/${id}`, {
-        method: 'POST',
+
+      await fetch(ACTUATOR_SET, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({ state: newState })
+        body: JSON.stringify({
+          actuator: id,
+          state: newState
+        })
       });
-    } catch (error) {
-      console.error('Failed to toggle actuator', error);
-      // Revert on failure
-      setActuators(prev => prev.map(a => a.id === id ? { ...a, state: currentState } : a));
+
+    } catch (err) {
+
+      console.error("Actuator toggle failed", err);
+
+      setActuators(prev =>
+        prev.map(a => a.id === id ? { ...a, state: currentState } : a)
+      );
+
     }
   };
 
@@ -315,10 +354,10 @@ export default function App() {
                     onClick={() => toggleActuator(actuator.id, actuator.state)}
                     disabled={actuator.state === 'UNAVAILABLE'}
                     className={`px-4 py-2 rounded font-bold text-xs tracking-wider uppercase transition-all ${actuator.state === 'ON'
-                        ? 'bg-[var(--color-mars-orange)] text-white shadow-[0_0_15px_rgba(255,69,0,0.4)]'
-                        : actuator.state === 'UNAVAILABLE'
-                          ? 'bg-slate-900 text-slate-600 cursor-not-allowed'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      ? 'bg-[var(--color-mars-orange)] text-white shadow-[0_0_15px_rgba(255,69,0,0.4)]'
+                      : actuator.state === 'UNAVAILABLE'
+                        ? 'bg-slate-900 text-slate-600 cursor-not-allowed'
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                       }`}
                   >
                     {actuator.state}
