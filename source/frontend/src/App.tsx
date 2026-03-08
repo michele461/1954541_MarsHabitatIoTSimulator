@@ -56,7 +56,7 @@ type AutomationRule = {
 };
 
 const SOCKET_URL = 'http://localhost:3001';
-const ACTUATOR_API_URL = 'http://localhost:8080/api/actuators';
+const ACTUATOR_API_URL = 'http://localhost:3001/api/actuators';
 
 const ACTUATOR_META: Record<string, { name: string; icon: React.ReactNode }> = {
   cooling_fan: { name: 'Cooling Fan', icon: <Fan size={20} /> },
