@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
     Activity,
     AlertTriangle,
+    Bell,
     Droplets,
     Fan,
     FlaskConical,
@@ -16,7 +17,6 @@ import {
 } from 'lucide-react';
 import { Alert, AutomationDocument, StandardEvent } from 'common.types';
 
-// Types
 type ActuatorData = {
     id: string;
     state: AutomationDocument['actuator_state'];
@@ -35,6 +35,7 @@ export default function App() {
     const [sensors, setSensors] = useState<Record<string, StandardEvent>>({});
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [connected, setConnected] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
     const [actuators, setActuators] = useState<Record<string, ActuatorData>>({});
 
@@ -49,10 +50,7 @@ export default function App() {
 
     const [dataFilter, setDataFilter] = useState<'ALL' | 'SENSORS' | 'TELEMETRY'>('ALL');
 
-    const isTelemetry = (id: string) => {
-        const telemetryIds = ['solar_array', 'power_bus', 'radiation', 'life_support', 'thermal_loop', 'airlock'];
-        return telemetryIds.some(t => id.includes(t));
-    };
+    const notificationsRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         const socket: Socket = io(SOCKET_URL);
@@ -100,7 +98,7 @@ export default function App() {
                 ...prev,
                 [id]: { id, state, name, icon } as ActuatorData
             }));
-            setAlerts(prev => [data, ...prev].slice(0, 3)); // Keep last 3 alerts
+            setAlerts(prev => [data, ...prev].slice(0, 10)); // Keep last 10 alerts
         });
 
         return () => {
@@ -110,6 +108,28 @@ export default function App() {
             socket.disconnect();
         };
     }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                notificationsRef.current &&
+                !notificationsRef.current.contains(event.target as Node)
+            ) {
+                setIsNotificationsOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    const isTelemetry = (id: string) => {
+        const telemetryIds = ['solar_array', 'power_bus', 'radiation', 'life_support', 'thermal_loop', 'airlock'];
+        return telemetryIds.some(t => id.includes(t));
+    };
 
     const toggleActuator = async (id: string, currentState: AutomationDocument['actuator_state']) => {
         const newState = currentState === 'ON' ? 'OFF' : 'ON';
@@ -178,6 +198,31 @@ export default function App() {
 
     };
 
+    const handleActuatorMouseEnter = (actuatorId: string) => {
+        const timeout = setTimeout(() => {
+            setHoveredActuator(actuatorId);
+        }, 1000);
+
+        setHoverTimeout(timeout);
+    };
+
+    const handleActuatorMouseLeave = () => {
+        if (hoverTimeout) {
+            clearTimeout(hoverTimeout);
+            setHoverTimeout(null);
+        }
+        setHoveredActuator(null);
+    };
+
+    const handleDeleteAlert = (alert: Alert) => {
+        const newAlerts: Alert[] = [];
+        for (const a of alerts) {
+            if (JSON.stringify(a) === JSON.stringify(alert)) continue;
+            newAlerts.push(a);
+        }
+        setAlerts(newAlerts);
+    }
+
     const getSensorIcon = (id?: string) => {
         if (id?.includes('solar') || id?.includes('power') || id?.includes('bus')) return <Zap className="text-yellow-400" size={24} />;
         if (id?.includes('co2') || id?.includes('o2') || id?.includes('ph') || id?.includes('voc')) return <FlaskConical className="text-green-400" size={24} />;
@@ -192,16 +237,8 @@ export default function App() {
         if (id === 'entrance_humidifier') return { name: 'Entrance Humidifier', icon: <Droplets size={20} /> };
         if (id === 'hall_ventilation') return { name: 'Hall Ventilation', icon: <Wind size={20} /> };
         if (id === 'habitat_heater') return { name: 'Habitat Heater', icon: <Heater size={20} /> };
+        return { name: id, icon: <Settings2 size={20} /> };
     };
-
-    const handleDeleteAlert = (alert: Alert) => {
-        const newAlerts: Alert[] = [];
-        for (const a of alerts) {
-            if (JSON.stringify(a) === JSON.stringify(alert)) continue;
-            newAlerts.push(a);
-        }
-        setAlerts(newAlerts);
-    }
 
     const getMediaForActuator = (id: string, state: string): MediaConfig => {
         const normalizedState = (state || '').toUpperCase();
@@ -242,22 +279,6 @@ export default function App() {
         }
     };
 
-    const handleActuatorMouseEnter = (actuatorId: string) => {
-        const timeout = setTimeout(() => {
-            setHoveredActuator(actuatorId);
-        }, 1000);
-
-        setHoverTimeout(timeout);
-    };
-
-    const handleActuatorMouseLeave = () => {
-        if (hoverTimeout) {
-            clearTimeout(hoverTimeout);
-            setHoverTimeout(null);
-        }
-        setHoveredActuator(null);
-    };
-
     return (
         <div className="min-h-screen bg-[var(--color-mars-dark)] text-slate-200 font-mono p-4 md:p-8">
             {/* Header */}
@@ -269,43 +290,68 @@ export default function App() {
                     </h1>
                     <p className="text-slate-500 text-sm mt-1 uppercase tracking-widest">Habitat Telemetry & Control</p>
                 </div>
-                <div className="mt-4 md:mt-0 flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`}></div>
-                    <span className="text-sm text-slate-400 uppercase tracking-wider">
-                        {connected ? 'Uplink Active' : 'Signal Lost'}
-                    </span>
-                </div>
-            </header>
+                <div className="mt-4 md:mt-0 flex items-center gap-6">
+                    {/* Notifications Dropdown */}
+                    <div ref={notificationsRef} className="relative">
+                        <button
+                            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                            className="relative p-2 text-slate-400 hover:text-[var(--color-mars-orange)] transition-colors focus:outline-none"
+                        >
+                            <Bell size={20} />
+                            {alerts.length > 0 && (
+                                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-[0_0_5px_rgba(239,68,68,0.8)]">
+                                    {alerts.length}
+                                </span>
+                            )}
+                        </button>
 
-            {/* Alerts Banner */}
-            {alerts.length > 0 && (
-                <div className="mb-8 space-y-2">
-                    {alerts.map((alert: Alert) => (
-                        <div key={alert.device_id} className={`p-4 rounded border flex items-start gap-3 'bg-yellow-950/30 border-yellow-500/50 text-yellow-400'`}>
-                            <AlertTriangle className="shrink-0 mt-0.5" size={18} />
-                            <div className="flex-1">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-bold uppercase text-sm tracking-wider">Automation Activated</span>
-                                    <span className="text-xs opacity-70">{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                        {isNotificationsOpen && (
+                            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-black/95 border border-[var(--color-mars-border)] rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-md z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="p-3 border-b border-[var(--color-mars-border)] flex justify-between items-center bg-[var(--color-mars-surface)]">
+                                    <span className="font-bold text-sm uppercase tracking-widest text-slate-300">System Alerts</span>
+                                    <span className="text-xs text-slate-500">{alerts.length} Messages</span>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-                                    <div className="flex-1">
-                                        <p className="text-sm mt-1">{alert.message}</p>
-                                        <p className="text-sm mt-1">{alert.actuator + ' => ' + alert.state}</p>
-                                    </div>
-                                    <button
-                                        onClick={() => handleDeleteAlert(alert)}
-                                        className="text-slate-400 hover:text-red-400 p-2 text-2xl leading-none font-bold"
-                                        aria-label="Delete alert"
-                                    >
-                                        &times;
-                                    </button>
+                                <div className="max-h-80 overflow-y-auto p-2 space-y-2">
+                                    {alerts.length === 0 ? (
+                                        <div className="p-4 text-center text-slate-500 text-sm italic">
+                                            No active alerts
+                                        </div>
+                                    ) : (
+                                        alerts.map((alert, idx) => (
+                                            <div key={idx} className="p-3 rounded border border-yellow-500/30 bg-yellow-950/20 text-yellow-400 flex items-start gap-3">
+                                                <AlertTriangle className="shrink-0 mt-0.5" size={16} />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="font-bold uppercase text-[10px] tracking-wider">Automation</span>
+                                                        <span className="text-[10px] opacity-70">{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                                                    </div>
+                                                    <p className="text-xs leading-tight mb-1 truncate">{alert.message}</p>
+                                                    <p className="text-[10px] text-yellow-200/70 font-mono">{alert.actuator} &rarr; {alert.state}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteAlert(alert)}
+                                                    className="text-slate-500 hover:text-red-400 p-1 shrink-0"
+                                                    aria-label="Dismiss alert"
+                                                >
+                                                    &times;
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        )}
+                    </div>
+
+                    {/* Connection Status */}
+                    <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`}></div>
+                        <span className="text-sm text-slate-400 uppercase tracking-wider">
+                            {connected ? 'Uplink Active' : 'Signal Lost'}
+                        </span>
+                    </div>
                 </div>
-            )}
+            </header>
 
             <div className="flex flex-col gap-8">
 
