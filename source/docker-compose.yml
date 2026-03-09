@@ -1,0 +1,117 @@
+services:
+
+  # External Source
+  mars-simulator:
+    image: mars-iot-simulator:multiarch_v1
+    container_name: mars-simulator
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - mars-net
+
+  ## External Dependecies
+
+  # 1. The Message Broker (RabbitMQ)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Web UI port (accessible via browser to monitor queues)
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mars-net
+
+  # 2. The DB (MongoDB)
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - mongodb_volume:/data/db
+    networks:
+      - mars-net
+
+  ## Applications
+
+  # 1. Ingestion Service
+  ingestion-service:
+    container_name: ingestion-service
+    build:
+      context: ./workspace
+      dockerfile: apps/ingestion-service/Dockerfile
+    restart: always
+    environment:
+      - SIMULATOR_URL=mars-simulator:8080
+      - RABBITMQ_URL=amqp://rabbitmq
+    networks:
+      - mars-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mars-simulator:
+        condition: service_started
+
+  # 2. Automation Engine
+  automation-engine:
+    container_name: automation-engine
+    build:
+      context: ./workspace
+      dockerfile: apps/automation-engine/Dockerfile
+    restart: always
+    environment:
+      - SIMULATOR_URL=mars-simulator:8080
+      - MONGO_URL=mongodb:27017
+      - MONGO_USERNAME=admin
+      - MONGO_PASSWORD=admin
+      - RABBITMQ_URL=amqp://rabbitmq
+    networks:
+      - mars-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mars-simulator:
+        condition: service_started
+
+  # 3. State & API Service
+  state-api-service:
+    container_name: state-api-service
+    build:
+      context: ./workspace
+      dockerfile: apps/state-api-service/Dockerfile
+    restart: always
+    ports:
+      - "3001:3001" # Exposing the port for the REST apis and the React FrontEnd
+    environment:
+      - SIMULATOR_URL=mars-simulator:8080
+      - MONGO_URL=mongodb:27017
+      - MONGO_USERNAME=admin
+      - MONGO_PASSWORD=admin
+      - RABBITMQ_URL=amqp://rabbitmq
+      - PORT:3001
+    networks:
+      - mars-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mars-simulator:
+        condition: service_started
+
+networks:
+  mars-net:
+    driver: bridge
+
+volumes:
+  mongodb_volume:
+    driver: local

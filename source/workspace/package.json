@@ -1,0 +1,9 @@
+{
+    "name": "mars-habitat-iot-simulator-workspace",
+    "private": true,
+    "version": "1.0.0",
+    "packageManager": "pnpm@10.30.3",
+    "scripts": {
+        "build:client": "pnpm --filter common.types build && pnpm --filter dashboard build"
+    }
+}
