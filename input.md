@@ -5,9 +5,9 @@ The system is built as a distributed automation platform using a microservices a
 
 The system consists of the following macro-components:
 - **Ingestion Service (Data Collector):** A Node.js/TypeScript service responsible for fetching data from the Mars Simulator. It handles both periodic REST polling for static sensors and WebSocket subscriptions for telemetry streams. It normalizes all heterogeneous data into a unified internal format and publishes the standardized events to the message broker.
-- **Message Broker (RabbitMQ):** Acts as the central communication hub. It utilizes a `fanout` exchange (`telemetry_fanout`) to broadcast the normalized events simultaneously to multiple consumer queues without creating tight coupling between services.
+- **Message Broker (RabbitMQ):** Acts as the central communication hub. It utilizes a fanout exchange (telemetry_fanout) to broadcast the normalized events simultaneously to multiple consumer queues without creating tight coupling between services.
 - **Automation Engine (The Brain):** A Node.js/TypeScript processing service that subscribes to the broker. It dynamically evaluates incoming events against a set of persisted IF-THEN rules. It implements a "state awareness" memory cache to prevent spamming the simulator with redundant actuator commands. When a rule is triggered, it sends a REST POST request to the simulator to adjust an actuator and publishes an alert back to the broker.
-- **State API Service (The Memory):** A Node.js/Express service that subscribes to the broker to maintain an in-memory cache of the latest state for every sensor. It exposes RESTful APIs (e.g., `/api/state/:device_id`) for initial data fetching and uses Socket.io to push real-time updates and system alerts to the frontend.
+- **State API Service (The Memory):** A Node.js/Express service that subscribes to the broker to maintain an in-memory cache of the latest state for every sensor. It exposes RESTful APIs (e.g., /api/state/:device_id) for initial data fetching and uses Socket.io to push real-time updates and system alerts to the frontend.
 - **Rule Database (MongoDB):** A persistent NoSQL storage used by the Automation Engine to save and load the automation rules, ensuring they survive container restarts.
 - **Frontend Dashboard (React):** A web-based UI that consumes the State API to provide real-time monitoring of the habitat, manual control over the actuators, and a graphical interface for rule management.
 
@@ -70,14 +70,14 @@ To handle the heterogeneous nature of the sensors provided by the simulator, all
 
 
 ## 4. Schema Mapping Details:
-- `device_id`: Maps the `sensor_id` of REST sensors or the topic name for telemetry streams.
-- `timestamp`: Maps `captured_at` or `event_time`.
-- `readings`: A flexible array implemented to support both scalar sensors (a single value) and complex multi-metric sensors (e.g., particulate arrays or chemistry arrays) within the exact same structural signature.
+- device_id: Maps the sensor_id of REST sensors or the topic name for telemetry streams.
+- timestamp: Maps captured_at or event_time.
+- readings: A flexible array implemented to support both scalar sensors (a single value) and complex multi-metric sensors (e.g., particulate arrays or chemistry arrays) within the exact same structural signature.
 
 
 
 ## 5. Rule Model
-The automation engine dynamically evaluates simple `IF-THEN` rules upon the arrival of new events. As required by the architectural constraints, these automation rules must be persisted in a database (e.g., PostgreSQL, MongoDB, or an embedded DB like SQLite) to ensure they survive service restarts.
+The automation engine dynamically evaluates simple IF-THEN rules upon the arrival of new events. As required by the architectural constraints, these automation rules must be persisted in a database (e.g., PostgreSQL, MongoDB, or an embedded DB like SQLite) to ensure they survive service restarts.
 The system supports automation rules following this standard syntax:`IF [metric] [operator] [value] [unit] THEN set [actuator] to ON | OFF`
 Supported operators include: `<`, `<=`, `=`, `>`, `>=`.
 Below is the JSON representation of the data model used to store, manage, and evaluate these automation rules within the system:
