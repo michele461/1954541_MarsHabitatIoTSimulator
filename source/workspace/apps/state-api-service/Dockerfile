@@ -9,6 +9,7 @@ RUN pnpm --filter common.constants build
 RUN pnpm --filter common.functions build
 RUN pnpm --filter driver.mongo build
 RUN pnpm --filter driver.rabbit build
+RUN pnpm build:client
 RUN pnpm --filter state-api-service build
 
 FROM node:20-alpine AS state-api-service
@@ -29,6 +30,7 @@ COPY --from=state-api-service-build /workspace/common/driver.mongo/node_modules 
 COPY --from=state-api-service-build /workspace/common/driver.rabbit/package.json ./common/driver.rabbit/package.json
 COPY --from=state-api-service-build /workspace/common/driver.rabbit/dist ./common/driver.rabbit/dist
 COPY --from=state-api-service-build /workspace/common/driver.rabbit/node_modules ./common/driver.rabbit/node_modules
+COPY --from=state-api-service-build /workspace/apps/dashboard/dist ./apps/dashboard/dist
 COPY --from=state-api-service-build /workspace/apps/state-api-service/package.json ./apps/state-api-service/package.json
 COPY --from=state-api-service-build /workspace/apps/state-api-service/dist ./apps/state-api-service/dist
 COPY --from=state-api-service-build /workspace/apps/state-api-service/node_modules ./apps/state-api-service/node_modules

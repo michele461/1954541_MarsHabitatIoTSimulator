@@ -38,8 +38,6 @@ export enum State {
 
 export interface AutomationDocument {
     _id: string,
-    is_active: boolean,
-    name: string,
     device_id: string,
     device_metric: string,
     operator: Operator,

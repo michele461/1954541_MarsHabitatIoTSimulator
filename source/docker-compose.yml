@@ -45,24 +45,7 @@ services:
 
   ## Applications
 
-  # 1. Dashboard
-  # dashboard:
-  #   container_name: dashboard
-  #   build:
-  #     context: ./workspace
-  #     dockerfile: apps/dashboard/Dockerfile
-  #   restart: always
-  #   environment:
-  #     - SERVER_URL=http://state-api-service:3001
-  #   networks:
-  #     - mars-net
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-  #     mars-simulator:
-  #       condition: service_started
-
-  # 2. Ingestion Service
+  # 1. Ingestion Service
   ingestion-service:
     container_name: ingestion-service
     build:
@@ -80,7 +63,7 @@ services:
       mars-simulator:
         condition: service_started
 
-  # 3. Automation Engine
+  # 2. Automation Engine
   automation-engine:
     container_name: automation-engine
     build:
@@ -101,7 +84,7 @@ services:
       mars-simulator:
         condition: service_started
 
-  # 4. State & API Service
+  # 3. State & API Service
   state-api-service:
     container_name: state-api-service
     build:
@@ -109,7 +92,7 @@ services:
       dockerfile: apps/state-api-service/Dockerfile
     restart: always
     ports:
-      - "3001:3001" # Exposing the port for the REST apis
+      - "3001:3001" # Exposing the port for the REST apis and the React FrontEnd
     environment:
       - SIMULATOR_URL=mars-simulator:8080
       - MONGO_URL=mongodb:27017

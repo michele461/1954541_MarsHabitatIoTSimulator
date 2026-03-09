@@ -1,5 +1,6 @@
 import { AutomationDocument, MongoDriverConfig } from 'common.types';
 import { MongoClient, Db, Collection } from 'mongodb';
+import { createHash } from 'crypto';
 
 export class MongoDriver {
     private client: MongoClient;
@@ -39,13 +40,14 @@ export class MongoDriver {
 
     async create(automation: Omit<AutomationDocument, '_id'>): Promise<string> {
         if (!this.automationCollection) throw new Error('Not connected to database');
-        const result = await this.automationCollection.insertOne(automation as AutomationDocument);
+        const _id = createHash('md5').update(`${automation.actuator_id}${automation.actuator_state}${automation.device_id}${automation.device_metric}${automation.operator}${automation.value}`).digest('hex');
+        const result = await this.automationCollection.insertOne({ _id, ...automation });
         return result.insertedId.toString();
     }
 
     async getAutomation(id: string): Promise<AutomationDocument | null> {
         if (!this.automationCollection) throw new Error('Not connected to database');
-        return this.automationCollection.findOne({ _id: id } as any);
+        return this.automationCollection.findOne({ _id: id });
     }
 
     async getAutomationByDeviceId(deviceId: string): Promise<AutomationDocument[]> {
@@ -60,7 +62,7 @@ export class MongoDriver {
 
     async updateAutomation(id: string, updates: Partial<AutomationDocument>): Promise<boolean> {
         if (!this.automationCollection) throw new Error('Not connected to database');
-        const result = await this.automationCollection.updateOne({ _id: id } as any, {
+        const result = await this.automationCollection.updateOne({ _id: id }, {
             $set: updates,
         });
         return result.modifiedCount > 0;
@@ -68,7 +70,7 @@ export class MongoDriver {
 
     async delete(id: string): Promise<boolean> {
         if (!this.automationCollection) throw new Error('Not connected to database');
-        const result = await this.automationCollection.deleteOne({ _id: id } as any);
+        const result = await this.automationCollection.deleteOne({ _id: id });
         return result.deletedCount > 0;
     }
 
