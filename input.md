@@ -56,45 +56,33 @@ The system consists of the following macro-components:
 ## 3. Standard Event Schema
 To handle the heterogeneous nature of the sensors provided by the simulator, all incoming payloads (both via REST polling and telemetry streams) will be normalized to the following internal standard format:
 
-```json
+```typescript
 {
-  "device_id": "string",              // maps the sensor_id of REST sensors or the telemetry topic
-  "timestamp": "ISO-8601 datetime",   // maps captured_at or event_time
-  "status": "string (ok | warning)",
-  "readings": [                       // flexible array to support both scalar sensors (a single value) and complex sensors (e.g., particulate or chemistry)
-    {
-      "metric": "string",
-      "value": "number",
-      "unit": "string"
-    }
-  ]
+  device_id: string,
+  timestamp: string,
+  status: string,
+  readings: { 
+    metric: string, 
+    value: number, 
+    unit: string 
+  }[],
 }
 ```
 
-
-
-## 4. Schema Mapping Details:
-- device_id: Maps the sensor_id of REST sensors or the topic name for telemetry streams.
-- timestamp: Maps captured_at or event_time.
-- readings: A flexible array implemented to support both scalar sensors (a single value) and complex multi-metric sensors (e.g., particulate arrays or chemistry arrays) within the exact same structural signature.
-
-
-
-## 5. Rule Model
+## 4. Rule Model
 The automation engine dynamically evaluates simple IF-THEN rules upon the arrival of new events. As required by the architectural constraints, these automation rules must be persisted in a database (e.g., PostgreSQL, MongoDB, or an embedded DB like SQLite) to ensure they survive service restarts.
-The system supports automation rules following this standard syntax:`IF [metric] [operator] [value] [unit] THEN set [actuator] to ON | OFF`
+The system supports automation rules following this standard syntax:`IF [device]/[metric] [operator] [value] THEN set [actuator] to ON | OFF`
 Supported operators include: `<`, `<=`, `=`, `>`, `>=`.
-Below is the JSON representation of the data model used to store, manage, and evaluate these automation rules within the system:
+Below is the TypeScript representation of the data model used to store, manage, and evaluate these automation rules within the system:
 
-```json
+```typescript
 {
-  "rule_id": "uuid-string",          // unique identifier for the automation rule
-  "name": "string",
-  "condition_metric": "string",      // unified event metric to evaluate (e.g., "temperature_c")
-  "condition_operator": "string",
-  "condition_value": 15.0,           // numeric threshold required to trigger the rule
-  "target_actuator": "string",       // identifier of the actuator to control (e.g., "habitat_heater")
-  "target_state": "string",
-  "is_active": true
+  _id: string,
+  device_id: string,
+  device_metric: string,
+  operator: Operator,
+  value: number,
+  actuator_id: string,
+  actuator_state: State
 }
 ```

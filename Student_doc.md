@@ -4,21 +4,6 @@ The Ares Base Command is a distributed monitoring and automation system designed
 
 # DEPLOYMENT INSTRUCTIONS (HOW TO RUN):
 
-## Required Prerequisites:
-- **pnpm** (e.g., version 10.30.3) 
-  ```bash
-  npm install -g pnpm
-  ```
-- **Docker** and **Docker Compose**
-
-## How To Build the Code:
-Navigate to the workspace directory, install the dependencies, and build the code:
-  ```bash
-  cd source/workspace/
-  pnpm install
-  ```
-
-## How to Run the Infrastructure:
 Navigate to the source directory, build the Docker images, and start all the containers. As required, the entire system starts automatically without further manual setup.
   ```bash
   cd source/
@@ -26,141 +11,93 @@ Navigate to the source directory, build the Docker images, and start all the con
   docker compose up
   ```
 
-# 2. User Stories
+# CUSTOM CONTAINERS & MICROSERVICES:
 
-### 1. Navigation & UI Views (Dashboard)
-1. As a Habitat Operator, I want to access a unified main dashboard (`/all`) so that I can see both sensors and telemetry streams together.
-2. As a Habitat Operator, I want a dedicated "Sensors" page so that I can filter the view and focus only on internal habitat REST metrics.
-3. As a Habitat Operator, I want a dedicated "Telemetry" page so that I can filter the view and focus only on external streams.
-4. As a Habitat Operator, I want the dashboard to fetch the initial state upon first connection (via `GET /api/state`) so that I immediately see the current habitat situation without waiting for new events.
-5. As a Habitat Operator, I want the dashboard to receive data updates via WebSocket (Socket.io) so that I do not have to manually refresh the web page to see new values. *(NFR: Data visualization must rely on full-duplex WebSocket connections instead of HTTP polling)*
-6. As a Habitat Operator, I want to check the connection with the server from the dashboard via a health status, so that I know if I am really connected.
+The system is deployed using a strictly decoupled microservices architecture for the backend logic. Each core domain logic is containerized independently and orchestrated via Docker Compose.
 
-### 2. Real-time Monitoring & Data Handling
-7. As a Habitat Operator, I want to monitor scalar REST sensors (e.g., Temperature, Pressure, Humidity) in real-time so that vital internal parameters are maintained.
-8. As a Habitat Operator, I want to view complex multi-metric sensors (e.g., PM 2.5 arrays, VOC chemistry) in unified widgets so that I can easily read grouped data.
-9. As a Habitat Operator, I want to monitor high-frequency telemetry streams (e.g., Radiation, Power) so that I can react instantly to external anomalies.
-10. As a System Administrator, I want the backend to normalize all heterogeneous REST and Stream payloads into a standard internal event format so that the system processes everything uniformly. *(NFR: Strict architectural adherence to the unified internal StandardEvent schema)*
-11. As a System Administrator, I want the State API service to maintain an in-memory cache of the latest readings so that the UI updates fast and without heavy DB queries.
-
-### 3. Manual Actuator Control
-12. As a Habitat Operator, I want a dashboard button to manually toggle the `cooling_fan` so that I can force a temperature drop.
-13. As a Habitat Operator, I want to be able to manually toggle the `life_support_vent` so that I can correct oxygen levels.
-14. As a Habitat Operator, I want to be able to manually toggle the `airlock_shield` so that I can protect the base from radiation.
-15. As a Habitat Operator, I want to manually toggle the `heating_unit` so that the temperature does not drop below the survival threshold.
-16. As a Habitat Operator, I want to visually monitor the actuators through a real-time surveillance video-camera, so that I know everything is fine. *(NFR: Video feed components must not block or degrade the performance of real-time telemetry UI rendering)*
-17. As a System Administrator, I want manual actuator toggles to trigger a REST POST request to the simulator so that the external physical system is updated correctly. *(NFR: The UI must update the actuator state via an asynchronous REST POST request, maintaining Command-Query separation)*
-
-### 4. Rule Management (CRUD)
-18. As a Habitat Operator, I want to view a list of all active automation rules via the frontend so that I know what automated controls are governing the base.
-19. As a Habitat Operator, I want a frontend form to create a new IF-THEN rule so that the system can adapt to new environmental conditions.
-20. As a Habitat Operator, I want to be able to delete an existing rule from the interface so that I can remove obsolete automations.
-21. As a System Administrator, I want automation rules to be persisted in a database (MongoDB) so that they survive a system restart. *(NFR: Rules must be saved in a persistent database to survive container crashes or docker-compose down)*
-
-### 5. Automation Execution & Alerts
-22. As a Habitat Operator, I want the dashboard to automatically update an actuator's UI toggle when it is modified by an automation so that I see the real-time status without refreshing. *(NFR: The UI must update via WebSocket/Socket.io without refreshing the browser)*
-23. As a Habitat Operator, I want to receive real-time alert pop-ups on the dashboard when a rule triggers so that I am immediately notified of the autonomous action.
-24. As a System Administrator, I want the Automation Engine to evaluate incoming events dynamically against active rules so that thresholds are monitored constantly.
-25. As a System Administrator, I want the Engine to automatically send a POST command to the actuator when a rule triggers so that the habitat reacts autonomously.
-26. As a System Administrator, I want the Engine to check the current state of an actuator before triggering it so that the system avoids spamming the simulator with redundant commands.
-
-# CONTAINERS:
-
-## 1) Ares Base Command Infrastructure Container
+## 1) Ingestion Service Container
 
 ### DESCRIPTION:   
-The Ares Base Command Infrastructure Container has the task to provide the data taken from the Mars simulator and normalize them (ingestion service). 
-Then, the frontend takes these data every 5 seconds, through a web socket, for the sensor and continuously from the telemetry. This container also provides the automation service which creates the automation rules and stores them inside a MongoDB database. Finally, the frontend will query the database in order to obtain it after a reboot. 
+The data entry point of the architecture. It connects to the Mars Simulator to fetch raw environmental data, acting as an Anti-Corruption Layer. It handles periodic REST polling for sensors and persistent WebSocket connections for telemetry streams. The service normalizes all heterogeneous payloads into a unified `StandardEvent` format and publishes them to the RabbitMQ fanout exchange.
 
 ### PORTS:   
-3001: State\&Api Service  
-5672: RabbitMQ broker
+N/A (Operates entirely within the internal Docker network).
 
-### PERSISTENCE EVALUATION  
-The system currently uses In-Memory Persistence via the sensorCache object to provide sub-millisecond access to the latest habitat state. The Automation Engine is designed to integrate with MongoDB for persistent rule storage, currently utilizing mock configurations.
+### EXTERNAL SERVICES CONNECTIONS:
+- Mars IoT Simulator
+- RabbitMQ
 
-### EXTERNAL SERVICES CONNECTIONS  
-Mars Habitat Simulator (REST): Connected on port 8080 for sensor polling (/api/sensors) and actuator commands (/api/actuators/{name}.  
-Mars Habitat Simulator (WebSocket): Connected on port 8080 for real-time telemetry streaming (/api/telemetry/stream/{topic})
+### SERVICE ARCHITECTURE: 
+Event-driven acquisition layer with independent async polling loops and persistent socket listeners. Node.js using Axios for REST, `ws` for WebSocket streams, and `amqplib` for RabbitMQ.
 
-### MICROSERVICES:
-
-#### MICROSERVICE: ingestion service  
-- TYPE: Backend  
-- DESCRIPTION: The data entry point. It polls REST sensors, listens to telemetry WebSockets, normalizes raw data into StandardEvent format, and publishes it to a RabbitMQ fanout exchange.  
-- PORTS: N/A  
-- TECHNOLOGICAL SPECIFICATION: Node.js using Axios for REST, ws for WebSocket streams, and amqplib for RabbitMQ.  
-- SERVICE ARCHITECTURE: Event-driven acquisition layer with independent async polling loops and persistent socket listeners.
-
-- ENDPOINTS: N/A
-
-#### MICROSERVICE: automation service  
-- TYPE: Backend  
-- DESCRIPTION: The decision-making layer. It consumes normalized events, evaluates them against active rules, and triggers simulator actuators via POST requests.  
-- PORTS: N/A  
-- TECHNOLOGICAL SPECIFICATION: TypeScript logic using amqplib for consumption and Axios for triggering actuator commands.  
-- SERVICE ARCHITECTURE: Reactive Rule Engine. Implements a consume-evaluate-act pattern for every incoming sensor event.
-
-- ENDPOINTS: N/A
-
-- DB STRUCTURE:  
-    db\_name: Mars-DB  
-    collection\_name: AutomationCollection   
-    document\_structure: {id: string, device\_id: string,  device\_metric: string, operator:’ \=' | '\<' | '\<=' | '\>' | '\>=', value: number, actuator\_id: string, actuator\_state: 'ON' | 'OFF'}  
-    
-
-#### MICROSERVICE: state-api-service  
-- TYPE: Backend  
-- DESCRIPTION: Manages the global habitat state. It maintains the latest readings in cache and broadcasts real-time updates to the UI.  
-- PORTS: 3001  
-- TECHNOLOGICAL SPECIFICATION: Node.js/Express server using Socket.io for bidirectional communication and amqplib to subscribe to the event bus.  
-- SERVICE ARCHITECTURE: Stateful API Gateway. Bridges asynchronous RabbitMQ messages to the real-time requirements of the frontend.
-
-- ENDPOINTS:
-
-| HTTP method | URL | description | User Stories |
-| :---- | :---- | :---- | :---- |
-| GET | /api/state | Retrieves all current sensor values from the in-memory cache | 1-15 |
-| POST | /api/actuators/toggle | Manual command to change an actuator state (ON/OFF) | 16-19 |
-| GET | /api/rules | Retrieves the list of all active automation rules stored in the database | 24 |
-| POST | /api/rules | Creates and persists a new automation IF-THEN rule in the database | 20 |
-| DELETE | /api/rules/{id} | Removes a specific automation rule from the persistent database | 23 |
-
-- DB STRUCTURE:  
-db\_name: Mars-DB  
-    collection\_name: AutomationCollection   
-    document\_structure: {\_id: string, device\_id: string, device\_metric: string, operator:’ \=' | '\<' | '\<=' | '\>' | '\>=', value: number, actuator\_id: string, actuator\_state: 'ON' | 'OFF'}
-
-## 2) Ares Base Command Frontend Container
+## 2) Automation Engine Container
 
 ### DESCRIPTION:   
-The Ares Frontend Container is the user-facing layer of the Ares Base Command system. It provides a real-time graphical interface for monitoring habitat conditions and controlling system actuators. It is used as the primary terminal for mission operators to visualize the data processed by the backend infrastructure.
+The decision-making layer. It acts as a consumer on the RabbitMQ message broker. It consumes the normalized events, evaluates them in real-time against the active IF-THEN rules, and checks the current state of actuators to ensure idempotency. If a rule triggers, it sends a REST POST request to the simulator to change the actuator state and publishes an alert back to the broker.
 
-### USER STORIES: 
-1-25
+### PORTS:   
+N/A (Operates internally).
 
-### PORTS: 
-5173 default port for the vite/react development server  
+### EXTERNAL SERVICES CONNECTIONS:
+- MongoDB
+- RabbitMQ
 
-### PERSISTENCE EVALUATION:  
-There is no data persistence on the frontend level. The application is entirely stateless regarding long-term storage, as it relies on the state-api-service to provide the current habitat state upon connection. Further it operates queering the database for the stored automation rules.
+### SERVICE ARCHITECTURE: 
+Reactive Rule Engine implemented in TypeScript. It implements a consume-evaluate-act pattern for every incoming sensor event without blocking the main event loop.
 
-### EXTERNAL SERVICE CONNECTIONS:  
-state-api-service: Connected via WebSockets (port 3001\) for live sensor updates and real-time automation alerts.  
-state-api-service: Connected via REST (port 3001\) for initial state synchronization using the /api/state endpoint.
+### PERSISTENCE EVALUATION:
+Rules are mission-critical. This service connects directly to the MongoDB container to read and persist the active automation rules, ensuring they survive system reboots or container crashes.
 
-### MICROSERVICES:
+- **DB STRUCTURE:** - **db_name:** `Mars-DB`  
+    - **collection_name:** `AutomationCollection`   
+    - **document_structure:** `{_id: string, device_id: string, device_metric: string, operator: '=' | '<' | '<=' | '>' | '>=', value: number, actuator_id: string, actuator_state: 'ON' | 'OFF'}`
 
-#### MICROSERVICE: frontend  
-- TYPE: Frontend  
-- DESCRIPTION: A React-based Single Page Application that permits to see normalized telemetry and sensor data into interactive visual elements such as gauges, charts, and status indicators. Here the operator can also create new automation rules and eventually toggle the actuators.  
-- PORTS: 5173  
-- TECHNOLOGICAL SPECIFICATION: React framework powered by Vite for fast development and optimized builds. It utilizes socket.io-client for full-duplex communication with the backend and Tailwind CSS for a dark-themed aesthetic.  
-- SERVICE ARCHITECTURE: Reactive Component Architecture. The UI utilizes a push model where specific components re-render automatically when the state-api-service broadcasts new data packets via WebSockets.  
-- PAGES:
+## 3) State API Service & Frontend Dashboard Container
 
-| Name | Description | Related Microservice | User Stories |
+### DESCRIPTION:   
+Manages the global habitat state, serves as the backend-for-frontend (BFF), and **statically serves the React Frontend Dashboard**. 
+It bridges the asynchronous RabbitMQ messages to the real-time requirements of the dashboard by maintaining an in-memory dictionary of the latest sensor readings and broadcasting updates via Socket.io. It provides REST endpoints for manual actuator overrides and rule management. Furthermore, the Express application is configured to serve the production build of the Vite/React frontend as static files, consolidating both API and UI delivery in a single container.
+
+### PORTS:   
+`3001` (Exposed to the host for Frontend UI access, REST API requests, and WebSocket connections).
+
+### EXTERNAL SERVICES CONNECTIONS:
+- MongoDB
+- RabbitMQ
+
+### SERVICE ARCHITECTURE: 
+Stateful API Gateway and Web Server built with Node.js/Express. Uses `socket.io` for full-duplex bidirectional communication and `amqplib` to subscribe to the broker queues. The Express instance intercepts the `/` route to serve `index.html` (SPA support) and statically serves the compiled frontend assets from the `dist` folder.
+
+### ENDPOINTS MAPPING:
+
+| HTTP method | URL | Description | User Stories |
 | :---- | :---- | :---- | :---- |
-| all | full dashboard access with both sensors and telemetry plus the section related to rules creation, rules list and actuators. The Operator has also the possibility to check the alerts | state-api-service | 1-25 |
-| sensors | in this case only the sensors can be monitored, with all the other section specified in the “all” page despite telemetry | state-api-service | 1-8, 16-25 |
-| telemetry | in this case only the telemetry can be monitored, with all the other section specified in the “all” page despite sensors | state-api-service | 9-25 |
+| `GET` | `/api/health` | Performs a health check verifying the connection status of the server | 6 |
+| `GET` | `/api/devices` | Retrieves the list of all active device/sensor identifiers | Utility |
+| `GET` | `/api/state` | Retrieves all current sensor values from the in-memory cache | 4, 7, 8, 9, 11 |
+| `GET` | `/api/state/:device_id`| Retrieves the current cached data for a specific device | 7, 8, 9 |
+| `GET` | `/api/actuators/get` | Retrieves the list of all actuators and their current states | UI Init |
+| `POST` | `/api/actuators/setState` | Manual command to toggle or set an actuator's state | 12, 13, 14, 15, 17 |
+| `GET` | `/api/automation/get` | Retrieves the list of all active automation rules from MongoDB | 18 |
+| `POST` | `/api/automation/create` | Creates and persists a new automation IF-THEN rule | 19, 21 |
+| `POST` | `/api/automation/update` | Modifies an existing automation rule in the database | Utility |
+| `GET` | `/api/automation/delete/:automation_id` | Removes a specific automation rule from the database | 20 |
+
+### FRONTEND
+
+**SERVICE ARCHITECTURE**:
+
+Reactive Component Architecture. A Single Page Application built with React and Tailwind CSS. The UI utilizes a push model where specific widgets re-render automatically when new data packets are received via `socket.io-client`.
+
+**PAGES MAPPING**:
+| Route Name | Description | User Stories |
+| :---- | :---- | :---- |
+| `/all` | Full dashboard access displaying both sensors and telemetry, alongside rule management, actuators, and alert notifications. | 1, 4-26 |
+| `/sensors` | Filtered view focusing exclusively on internal REST sensors (excluding telemetry), alongside actuators and rules. | 2, 4-8, 10-26 |
+| `/telemetry` | Filtered view focusing exclusively on external telemetry streams (excluding REST sensors), alongside actuators and rules. | 3-6, 9-26 |
+
+# EXTERNAL INFRASTRUCTURE CONTAINERS:
+In addition to the custom microservices, the `docker-compose.yml` orchestrates the necessary infrastructure dependencies:
+- **Mars Habitat Simulator:** Exposed on port `8080`. Provides the data source (REST `/api/sensors` and WS `/api/telemetry/stream/{topic}`) and the physical actuator targets.
+- **RabbitMQ Broker:** Exposed on port `5672`. Acts as the central event bus utilizing a fanout exchange (`telemetry_fanout`) to decouple ingestion from processing.
+- **MongoDB:** Exposed on port `27017` Provides persistent NoSQL storage for the automation engine rules.
