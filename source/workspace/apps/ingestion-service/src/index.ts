@@ -1,20 +1,17 @@
-import amqp from 'amqplib';
 import { EXCHANGE_NAME, RABBITMQ_URL } from 'common.constants';
 import { startRestPoller } from './logic/poller';
 import { startTelemetryStreamer } from './logic/streamer';
-
+import RabbitDriver from 'driver.rabbit';
 
 async function start() {
     console.log("Starting the Ingestion Service...");
     try {
-        const connection = await amqp.connect(RABBITMQ_URL);
-        const channel = await connection.createChannel();
+        const driver = new RabbitDriver(RABBITMQ_URL, EXCHANGE_NAME);
+        await driver.connect();
+        console.log(`Connected to RabbitMQ`);
 
-        await channel.assertExchange(EXCHANGE_NAME, 'fanout', { durable: true });
-        console.log(`Connected to RabbitMQ. Target Exchange: ${EXCHANGE_NAME}`);
-
-        await startRestPoller(channel);
-        await startTelemetryStreamer(channel);
+        await startRestPoller(driver);
+        await startTelemetryStreamer(driver);
 
         console.log("Ingestion Service started");
     } catch (error) {

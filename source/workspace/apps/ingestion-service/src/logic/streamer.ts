@@ -1,26 +1,26 @@
 import axios from 'axios';
 import WebSocket from 'ws';
-import { Channel } from 'amqplib';
-import { SIMULATOR_URL, EXCHANGE_NAME, WS_BASE_URL } from 'common.constants';
+import { SIMULATOR_URL } from 'common.constants';
+import RabbitDriver from 'driver.rabbit';
 import { normalizeData } from './normalizer';
 
-export async function startTelemetryStreamer(channel: Channel) {
+export async function startTelemetryStreamer(driver: RabbitDriver) {
     console.log("Starting Telemetry Streamer with RabbitMQ...");
 
-    const response = await axios.get(`${SIMULATOR_URL}/api/telemetry/topics`);
+    const response = await axios.get(`http://${SIMULATOR_URL}/api/telemetry/topics`);
     const topics: string[] = response.data.topics;
 
     for (const topic of topics) {
-        await startWebSocket(topic, channel);
+        await startWebSocket(topic, driver);
     }
 
     console.log("Telemetry Streamer started");
 
 }
 
-async function startWebSocket(topic: string, channel: Channel) {
+async function startWebSocket(topic: string, driver: RabbitDriver) {
 
-    const wsUrl = `${WS_BASE_URL}/api/telemetry/ws?topic=${topic}`;
+    const wsUrl = `ws://${SIMULATOR_URL}/api/telemetry/ws?topic=${topic}`;
     const ws = new WebSocket(wsUrl);
 
     ws.on('open', () => {
@@ -34,7 +34,7 @@ async function startWebSocket(topic: string, channel: Channel) {
 
             if (normalized) {
                 const buffer = Buffer.from(JSON.stringify(normalized));
-                channel.publish(EXCHANGE_NAME, '', buffer);
+                driver.publish(buffer);
                 console.log(`[RABBIT] Published telemetry: ${normalized.device_id}`);
             }
         } catch (err) {
@@ -49,7 +49,7 @@ async function startWebSocket(topic: string, channel: Channel) {
     ws.on('close', () => {
         console.warn(`WebSocket closed for ${topic}.`);
         setTimeout(() => {
-            startWebSocket(topic, channel);
+            startWebSocket(topic, driver);
         }, 5000);
     });
 }

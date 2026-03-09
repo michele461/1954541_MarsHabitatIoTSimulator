@@ -3,12 +3,12 @@ import { SIMULATOR_URL } from 'common.constants';
 import { State } from 'common.types';
 
 export async function getActuatorList(): Promise<Record<string, State>> {
-    const response = await axios.get(`${SIMULATOR_URL}/api/actuators`);
+    const response = await axios.get(`http://${SIMULATOR_URL}/api/actuators`);
     return response.data.actuators;
 }
 
 export async function setActuatorState(actuator: string, state: State): Promise<void> {
-    const url = `${SIMULATOR_URL}/api/actuators/${actuator}`;
+    const url = `http://${SIMULATOR_URL}/api/actuators/${actuator}`;
     const response = await axios.post(url, { state });
     console.log(`[ACTION] ${actuator} -> ${state}:`, response.data);
 }

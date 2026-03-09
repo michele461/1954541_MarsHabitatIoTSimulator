@@ -8,6 +8,7 @@ RUN pnpm --filter common.types build
 RUN pnpm --filter common.constants build
 RUN pnpm --filter common.functions build
 RUN pnpm --filter driver.mongo build
+RUN pnpm --filter driver.rabbit build
 RUN pnpm --filter automation-engine build
 
 FROM node:20-alpine AS automation-engine
@@ -25,6 +26,9 @@ COPY --from=automation-engine-build /workspace/common/common.functions/node_modu
 COPY --from=automation-engine-build /workspace/common/driver.mongo/package.json ./common/driver.mongo/package.json
 COPY --from=automation-engine-build /workspace/common/driver.mongo/dist ./common/driver.mongo/dist
 COPY --from=automation-engine-build /workspace/common/driver.mongo/node_modules ./common/driver.mongo/node_modules
+COPY --from=automation-engine-build /workspace/common/driver.rabbit/package.json ./common/driver.rabbit/package.json
+COPY --from=automation-engine-build /workspace/common/driver.rabbit/dist ./common/driver.rabbit/dist
+COPY --from=automation-engine-build /workspace/common/driver.rabbit/node_modules ./common/driver.rabbit/node_modules
 COPY --from=automation-engine-build /workspace/apps/automation-engine/package.json ./apps/automation-engine/package.json
 COPY --from=automation-engine-build /workspace/apps/automation-engine/dist ./apps/automation-engine/dist
 COPY --from=automation-engine-build /workspace/apps/automation-engine/node_modules ./apps/automation-engine/node_modules

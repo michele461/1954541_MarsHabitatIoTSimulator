@@ -70,9 +70,8 @@ services:
       dockerfile: apps/ingestion-service/Dockerfile
     restart: always
     environment:
-      - SIMULATOR_URL=http://mars-simulator:8080
+      - SIMULATOR_URL=mars-simulator:8080
       - RABBITMQ_URL=amqp://rabbitmq
-      - WS_BASE_URL=ws://mars-simulator:8080
     networks:
       - mars-net
     depends_on:
@@ -89,7 +88,7 @@ services:
       dockerfile: apps/automation-engine/Dockerfile
     restart: always
     environment:
-      - SIMULATOR_URL=http://mars-simulator:8080
+      - SIMULATOR_URL=mars-simulator:8080
       - MONGO_URL=mongodb:27017
       - MONGO_USERNAME=admin
       - MONGO_PASSWORD=admin
@@ -110,9 +109,9 @@ services:
       dockerfile: apps/state-api-service/Dockerfile
     restart: always
     ports:
-      - "3001:3001" # Exposing the port for the React Frontend
+      - "3001:3001" # Exposing the port for the REST apis
     environment:
-      - SIMULATOR_URL=http://mars-simulator:8080
+      - SIMULATOR_URL=mars-simulator:8080
       - MONGO_URL=mongodb:27017
       - MONGO_USERNAME=admin
       - MONGO_PASSWORD=admin

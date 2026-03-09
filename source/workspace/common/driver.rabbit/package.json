@@ -1,25 +1,23 @@
 {
-  "name": "automation-engine",
+  "name": "driver.rabbit",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "src/index.ts",
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev src/index.ts",
     "build": "tsc"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "common.constants": "workspace:*",
+    "amqplib": "0.10.9",
     "common.types": "workspace:*",
-    "common.functions": "workspace:*",
-    "driver.mongo": "workspace:*",
-    "driver.rabbit": "workspace:*"
+    "common.functions": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.19.37",
+    "@types/amqplib": "0.10.8",
     "typescript": "5.9.3"
   }
 }
