@@ -3,7 +3,7 @@ WORKDIR /workspace
 ENV CI=true
 RUN npm install -g pnpm
 COPY . .
-RUN pnpm install --frozen-lockfile
+RUN pnpm install 
 RUN pnpm --filter common.types build
 RUN pnpm --filter common.constants build
 RUN pnpm --filter common.functions build

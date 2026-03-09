@@ -26,6 +26,11 @@ type ActuatorData = {
 
 const SOCKET_URL = 'http://localhost:3001';
 
+type MediaConfig = {
+    type: 'video' | 'image';
+    src: string;
+};
+
 export default function App() {
     const [sensors, setSensors] = useState<Record<string, StandardEvent>>({});
     const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -38,6 +43,9 @@ export default function App() {
         operator: '>' as AutomationDocument['operator'],
         actuator_state: 'ON' as AutomationDocument['actuator_state']
     });
+
+    const [hoveredActuator, setHoveredActuator] = useState<string | null>(null);
+    const [hoverTimeout, setHoverTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
     const [dataFilter, setDataFilter] = useState<'ALL' | 'SENSORS' | 'TELEMETRY'>('ALL');
 
@@ -96,6 +104,9 @@ export default function App() {
         });
 
         return () => {
+            if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+            }
             socket.disconnect();
         };
     }, []);
@@ -192,6 +203,61 @@ export default function App() {
         setAlerts(newAlerts);
     }
 
+    const getMediaForActuator = (id: string, state: string): MediaConfig => {
+        const normalizedState = (state || '').toUpperCase();
+
+        if (normalizedState === 'UNAVAILABLE') {
+            return {
+                type: 'video',
+                src: '/media/fallback_unavaible.mp4',
+            };
+        }
+
+        switch (id) {
+            case 'cooling_fan':
+                return normalizedState === 'ON'
+                    ? { type: 'video', src: '/media/cooling_fan_ON.mp4' }
+                    : { type: 'image', src: '/media/cooling_fan_OFF.png' };
+
+            case 'habitat_heater':
+                return normalizedState === 'ON'
+                    ? { type: 'video', src: '/media/habitat_heater_ON.mp4' }
+                    : { type: 'image', src: '/media/habitat_heater_OFF.png' };
+
+            case 'entrance_humidifier':
+                return normalizedState === 'ON'
+                    ? { type: 'video', src: '/media/entrance_humidifier_ON.mp4' }
+                    : { type: 'image', src: '/media/entrance_humidifier_OFF.png' };
+
+            case 'hall_ventilation':
+                return normalizedState === 'ON'
+                    ? { type: 'video', src: '/media/hall_ventilation_ON.mp4' }
+                    : { type: 'image', src: '/media/hall_ventilation_OFF.png' };
+
+            default:
+                return {
+                    type: 'video',
+                    src: '/media/fallback_unavaible.mp4',
+                };
+        }
+    };
+
+    const handleActuatorMouseEnter = (actuatorId: string) => {
+        const timeout = setTimeout(() => {
+            setHoveredActuator(actuatorId);
+        }, 1000);
+
+        setHoverTimeout(timeout);
+    };
+
+    const handleActuatorMouseLeave = () => {
+        if (hoverTimeout) {
+            clearTimeout(hoverTimeout);
+            setHoverTimeout(null);
+        }
+        setHoveredActuator(null);
+    };
+
     return (
         <div className="min-h-screen bg-[var(--color-mars-dark)] text-slate-200 font-mono p-4 md:p-8">
             {/* Header */}
@@ -229,7 +295,8 @@ export default function App() {
                                     </div>
                                     <button
                                         onClick={() => handleDeleteAlert(alert)}
-                                        className="text-slate-600 hover:text-red-400 p-1"
+                                        className="text-slate-400 hover:text-red-400 p-2 text-2xl leading-none font-bold"
+                                        aria-label="Delete alert"
                                     >
                                         &times;
                                     </button>
@@ -328,8 +395,13 @@ export default function App() {
                             <h2 className="text-xl font-semibold uppercase tracking-widest text-slate-300">Actuators</h2>
                         </div>
                         <div className="space-y-3">
-                            {Object.values(actuators).map((actuator) => (
-                                <div key={actuator.id} className="bg-[var(--color-mars-surface)] border border-[var(--color-mars-border)] rounded-lg p-4 flex items-center justify-between">
+                            {Object.values(actuators).map((actuator, index) => (
+                                <div
+                                    key={actuator.id}
+                                    className="relative bg-[var(--color-mars-surface)] border border-[var(--color-mars-border)] rounded-lg p-4 flex items-center justify-between"
+                                    onMouseEnter={() => handleActuatorMouseEnter(actuator.id)}
+                                    onMouseLeave={handleActuatorMouseLeave}
+                                >
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2 rounded ${actuator.state === 'ON' ? 'bg-[var(--color-mars-orange-dim)] text-[var(--color-mars-orange)]' : 'bg-slate-800 text-slate-500'}`}>
                                             {actuator.icon}
@@ -339,6 +411,7 @@ export default function App() {
                                             <div className="text-xs text-slate-500 uppercase">{actuator.id}</div>
                                         </div>
                                     </div>
+
                                     <button
                                         onClick={() => toggleActuator(actuator.id, actuator.state)}
                                         className={`px-4 py-2 rounded font-bold text-xs tracking-wider uppercase transition-all ${actuator.state === 'ON'
@@ -348,6 +421,57 @@ export default function App() {
                                     >
                                         {actuator.state}
                                     </button>
+
+                                    {/* VIDEO POPUP (Security Camera Style) */}
+                                    {hoveredActuator === actuator.id && (() => {
+                                        const media = getMediaForActuator(actuator.id, actuator.state);
+                                        const normalizedState = (actuator.state || '').toUpperCase();
+
+                                        return (
+                                            <div className="absolute bottom-full right-0 mb-2 z-50 w-64 aspect-video bg-black border border-[var(--color-mars-border)] rounded-lg overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                                {/* Camera Overlay UI */}
+                                                <div className="absolute top-2 left-2 flex items-center gap-2 z-10">
+                                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                                                    <span className="text-[10px] font-mono text-white/90 bg-black/60 px-1.5 py-0.5 rounded">
+                                                        CAM-0{index + 1}
+                                                    </span>
+                                                </div>
+
+                                                <div className="absolute bottom-2 left-2 z-10">
+                                                    <span
+                                                        className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${normalizedState === 'ON'
+                                                            ? 'text-[var(--color-mars-orange)] bg-black/60'
+                                                            : normalizedState === 'UNAVAILABLE'
+                                                                ? 'text-red-300 bg-black/60'
+                                                                : 'text-slate-400 bg-black/60'
+                                                            }`}
+                                                    >
+                                                        {actuator.state}
+                                                    </span>
+                                                </div>
+
+                                                {media.type === 'video' ? (
+                                                    <video
+                                                        src={media.src}
+                                                        autoPlay
+                                                        loop
+                                                        muted
+                                                        playsInline
+                                                        className="w-full h-full object-cover opacity-80 grayscale contrast-125"
+                                                    />
+                                                ) : (
+                                                    <img
+                                                        src={media.src}
+                                                        alt={`${actuator.id} ${actuator.state}`}
+                                                        className="w-full h-full object-cover opacity-80 grayscale contrast-125"
+                                                    />
+                                                )}
+
+                                                {/* Scanline Effect */}
+                                                <div className="absolute inset-0 pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSJ0cmFuc3BhcmVudCI+PC9yZWN0Pgo8bGluZSB4MT0iMCIgeTE9IjAiIHgyPSI0IiB5Mj0iMCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiIHN0cm9rZS13aWR0aD0iMSI+PC9saW5lPgo8L3N2Zz4=')] opacity-30 mix-blend-overlay"></div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             ))}
                         </div>
@@ -461,7 +585,8 @@ export default function App() {
                                         </div>
                                         <button
                                             onClick={() => handleDeleteRule(rule._id)}
-                                            className="text-slate-600 hover:text-red-400 p-1"
+                                            className="text-slate-400 hover:text-red-400 p-2 text-2xl leading-none font-bold"
+                                            aria-label="Delete rule"
                                         >
                                             &times;
                                         </button>
