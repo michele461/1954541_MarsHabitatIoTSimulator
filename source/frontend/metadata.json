@@ -1,0 +1,5 @@
+{
+  "name": "Mars Habitat Mission Control",
+  "description": "Real-time monitoring and automation dashboard for Mars habitat.",
+  "requestFramePermissions": []
+}
