@@ -89,6 +89,9 @@ Mars Habitat Simulator (WebSocket): Connected on port 8080 for real-time telemet
 | :---- | :---- | :---- | :---- |
 | GET | /api/state | Retrieves all current sensor values from the in-memory cache | 1-15 |
 | POST | /api/actuators/toggle | Manual command to change an actuator state (ON/OFF) | 16-19 |
+| GET | /api/rules | Retrieves the list of all active automation rules stored in the database | 24 |
+| POST | /api/rules | Creates and persists a new automation IF-THEN rule in the database | 20 |
+| DELETE | /api/rules/{id} | Removes a specific automation rule from the persistent database | 23 |
 
 - DB STRUCTURE:  
 db\_name: Mars-DB  
