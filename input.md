@@ -50,8 +50,7 @@ To keep the system design focused, we identified 3 main user personas:
 20. As a System Administrator, I want a frontend interface to create a new IF-THEN rule so that the system can react autonomously to environmental changes. (NFR: Rules must be saved in a persistent database)
 21. As a System Administrator, I want to view the list of all active automation rules via the frontend so that I have an overview of the automatic controls in place.
 22. As a System Administrator, I want to be able to delete or disable an existing rule so that I can remove obsolete or incorrect automations.
-23. As a Safety Officer, I want to receive real-time alert notifications (pop-up) on the dashboard whenever an automation rule is triggered, so that I am instantly aware of autonomous system interventions and critical environmental changes.
-
+23. As a System Administrator, I want warning popup on the dashboard whenever an autamation rule is hitted so that i can be adviced when an actuator is turned on or off.
 
 ### Automation Execution (Backend)
 24. As a Habitat Operator, I want the system to automatically turn ON the cooling_fan if the temperature_c > 28.0 so that the habitat does not overheat without manual intervention.
