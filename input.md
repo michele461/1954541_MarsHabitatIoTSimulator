@@ -14,12 +14,6 @@ The system consists of the following macro-components:
 
 
 ## 2. User Stories
-These 26 user stories define the functional requirements for the dashboard, monitoring, and automation engine. Each story is accompanied by a LoFi mockup and specific non-functional requirements (NFRs) documented in the booklets folder.
-
-To keep the system design focused, we identified 3 main user personas:
-* **Habitat Operator**: Focuses on daily habitat maintenance (temperature, water, agriculture).
-* **Safety Officer**: Focuses on critical survival metrics (radiation, air quality, pressure).
-* **System Administrator**: Focuses on overall energy metrics and automation logic.
 
 ### REST Sensor Monitoring (Polling)
 1. As a Habitat Operator, I want to view the real-time value of the greenhouse temperature sensor so that I can ensure the plants do not freeze.(NFR: Fast UI update based on the in-memory cache)
