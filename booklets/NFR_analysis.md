@@ -11,3 +11,7 @@ When an operator clicks a toggle button on the React frontend, an asynchronous `
 ## 3. Rules must be saved in a persistent database (US-20)
 Automation rules must survive container restarts or service crashes.
 While the latest sensor states are kept in ephemeral memory for speed, the automation rules are inherently stateful and critical. We implemented a MongoDB (or PostgreSQL/SQLite based on your final choice) container. The `Automation Engine` reads the rules from this persistent storage at startup and keeps them cached. When the System Administrator creates or deletes a rule via the dashboard, the backend immediately writes the change to the persistent database before updating the execution engine, ensuring zero data loss upon `docker-compose down`.
+
+## 4. The UI must update via WebSocket/Socket.io without refreshing (US-22)
+The dashboard must automatically reflect actuator state changes triggered by backend automation rules without requiring a manual page refresh.
+To achieve this reactive behavior, when the Automation Engine triggers a rule, it performs two actions: it sends the REST POST command to the simulator, and it simultaneously publishes a state-change/alert message to RabbitMQ. The State API Service consumes this message and broadcasts a Socket.io event to all connected React clients. The frontend listens to this specific WebSocket event and updates its local React state, causing the actuator UI (e.g., a toggle switch or status badge) to re-render instantly and autonomously.
