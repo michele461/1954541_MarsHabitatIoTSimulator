@@ -26,13 +26,13 @@ Navigate to the source directory, build the Docker images, and start all the con
   docker compose up
   ```
 
-# User Stories
+# 2. User Stories
 
 ### 1. Navigation & UI Views (Dashboard)
 1. As a Habitat Operator, I want to access a unified main dashboard (`/all`) so that I can see both sensors and telemetry streams together.
 2. As a Habitat Operator, I want a dedicated "Sensors" page so that I can filter the view and focus only on internal habitat REST metrics.
 3. As a Habitat Operator, I want a dedicated "Telemetry" page so that I can filter the view and focus only on external streams.
-4. As a Habitat Operator, I want the dashboard to fetch the initial state upon first connection (via `GET /api/state`) so that I immediately see the current habitat situation without waiting for new events. *(NFR: Fast UI rendering based on the backend's in-memory cache)*
+4. As a Habitat Operator, I want the dashboard to fetch the initial state upon first connection (via `GET /api/state`) so that I immediately see the current habitat situation without waiting for new events.
 5. As a Habitat Operator, I want the dashboard to receive data updates via WebSocket (Socket.io) so that I do not have to manually refresh the web page to see new values. *(NFR: Data visualization must rely on full-duplex WebSocket connections instead of HTTP polling)*
 6. As a Habitat Operator, I want to check the connection with the server from the dashboard via a health status, so that I know if I am really connected.
 
@@ -41,7 +41,7 @@ Navigate to the source directory, build the Docker images, and start all the con
 8. As a Habitat Operator, I want to view complex multi-metric sensors (e.g., PM 2.5 arrays, VOC chemistry) in unified widgets so that I can easily read grouped data.
 9. As a Habitat Operator, I want to monitor high-frequency telemetry streams (e.g., Radiation, Power) so that I can react instantly to external anomalies.
 10. As a System Administrator, I want the backend to normalize all heterogeneous REST and Stream payloads into a standard internal event format so that the system processes everything uniformly. *(NFR: Strict architectural adherence to the unified internal StandardEvent schema)*
-11. As a System Administrator, I want the State API service to maintain an in-memory cache of the latest readings so that the UI updates fast and without heavy DB queries. *(NFR: Sensor states must be retrievable with sub-millisecond latency to prevent bottlenecks)*
+11. As a System Administrator, I want the State API service to maintain an in-memory cache of the latest readings so that the UI updates fast and without heavy DB queries.
 
 ### 3. Manual Actuator Control
 12. As a Habitat Operator, I want a dashboard button to manually toggle the `cooling_fan` so that I can force a temperature drop.
@@ -61,8 +61,8 @@ Navigate to the source directory, build the Docker images, and start all the con
 22. As a Habitat Operator, I want the dashboard to automatically update an actuator's UI toggle when it is modified by an automation so that I see the real-time status without refreshing. *(NFR: The UI must update via WebSocket/Socket.io without refreshing the browser)*
 23. As a Habitat Operator, I want to receive real-time alert pop-ups on the dashboard when a rule triggers so that I am immediately notified of the autonomous action.
 24. As a System Administrator, I want the Automation Engine to evaluate incoming events dynamically against active rules so that thresholds are monitored constantly.
-25. As a System Administrator, I want the Engine to automatically send a POST command to the actuator when a rule triggers so that the habitat reacts autonomously. *(NFR: Action execution must be decoupled and asynchronous to avoid blocking the event consumption loop)*
-26. As a System Administrator, I want the Engine to check the current state of an actuator before triggering it so that the system avoids spamming the simulator with redundant commands. *(NFR: The Automation Engine must implement idempotency to prevent redundant network calls)*
+25. As a System Administrator, I want the Engine to automatically send a POST command to the actuator when a rule triggers so that the habitat reacts autonomously.
+26. As a System Administrator, I want the Engine to check the current state of an actuator before triggering it so that the system avoids spamming the simulator with redundant commands.
 
 # CONTAINERS:
 
