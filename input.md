@@ -6,8 +6,8 @@ The system is built as a distributed automation platform using a microservices a
 The system consists of the following macro-components:
 - **Ingestion Service (Data Collector):** A Node.js/TypeScript service responsible for fetching data from the Mars Simulator. It handles both periodic REST polling for static sensors and WebSocket subscriptions for telemetry streams. It normalizes all heterogeneous data into a unified internal format and publishes the standardized events to the message broker.
 - **Message Broker (RabbitMQ):** Acts as the central communication hub. It utilizes a fanout exchange (telemetry_fanout) to broadcast the normalized events simultaneously to multiple consumer queues without creating tight coupling between services.
-- **Automation Engine (The Brain):** A Node.js/TypeScript processing service that subscribes to the broker. It dynamically evaluates incoming events against a set of persisted IF-THEN rules. It implements a "state awareness" memory cache to prevent spamming the simulator with redundant actuator commands. When a rule is triggered, it sends a REST POST request to the simulator to adjust an actuator and publishes an alert back to the broker.
-- **State API Service (The Memory):** A Node.js/Express service that subscribes to the broker to maintain an in-memory cache of the latest state for every sensor. It exposes RESTful APIs (e.g., /api/state/:device_id) for initial data fetching and uses Socket.io to push real-time updates and system alerts to the frontend.
+- **Automation Engine:** A Node.js/TypeScript processing service that subscribes to the broker. It dynamically evaluates incoming events against a set of persisted IF-THEN rules. It implements a "state awareness" memory cache to prevent spamming the simulator with redundant actuator commands. When a rule is triggered, it sends a REST POST request to the simulator to adjust an actuator and publishes an alert back to the broker.
+- **State API Service:** A Node.js/Express service that subscribes to the broker to maintain an in-memory cache of the latest state for every sensor. It exposes RESTful APIs (e.g., /api/state/:device_id) for initial data fetching and uses Socket.io to push real-time updates and system alerts to the frontend.
 - **Rule Database (MongoDB):** A persistent NoSQL storage used by the Automation Engine to save and load the automation rules, ensuring they survive container restarts.
 - **Frontend Dashboard (React):** A web-based UI that consumes the State API to provide real-time monitoring of the habitat, manual control over the actuators, and a graphical interface for rule management.
 
@@ -15,38 +15,42 @@ The system consists of the following macro-components:
 
 ## 2. User Stories
 
-### REST Sensor Monitoring (Polling)
-1. As a Habitat Operator, I want to view the real-time value of the greenhouse temperature sensor so that I can ensure the plants do not freeze.(NFR: Fast UI update based on the in-memory cache)
-2. As a Habitat Operator, I want to monitor the entrance_humidity so that optimal vital parameters are maintained.
-3. As a Habitat Operator, I want to see the co2_hall levels so that the air remains breathable.
-4. As a Habitat Operator, I want to check the hydroponic_ph so that nutrients are correctly absorbed by the crops.
-5. As a Habitat Operator, I want to view the water_tank_level so that the habitat does not run out of water resources.
-6. As a Habitat Operator, I want to monitor the corridor_pressure so that fatal depressurizations are prevented.
-7. As a Habitat Operator, I want to see the PM 1, 2.5, and 10 levels from air_quality_pm25 so that I can assess the breathable air quality.
-8. As a Habitat Operator, I want to monitor the volatile organic compounds (air_quality_voc) so that intoxications are prevented.
+### 1. Navigation & UI Views (Dashboard)
+1. As a Habitat Operator, I want to access a unified main dashboard (`/all`) so that I can see both sensors and telemetry streams together.
+2. As a Habitat Operator, I want a dedicated "Sensors" page so that I can filter the view and focus only on internal habitat REST metrics.
+3. As a Habitat Operator, I want a dedicated "Telemetry" page so that I can filter the view and focus only on external streams.
+4. As a Habitat Operator, I want the dashboard to fetch the initial state upon first connection (via `GET /api/state`) so that I immediately see the current habitat situation without waiting for new events. *(NFR: Fast UI rendering based on the backend's in-memory cache)*
+5. As a Habitat Operator, I want the dashboard to receive data updates via WebSocket (Socket.io) so that I do not have to manually refresh the web page to see new values. *(NFR: Data visualization must rely on full-duplex WebSocket connections instead of HTTP polling)*
+6. As a Habitat Operator, I want to check the connection with the server from the dashboard via a health status, so that I know if I am really connected.
 
-### Telemetry Monitoring (Pub/Sub Stream)
-9. As a Habitat Operator, I want to view the power generated by the mars/ telemetry/solar_array so that I can ensure the base has sufficient energy.
-10. As a Habitat Operator, I want to monitor external mars/telemetry/radiation levels so that astronauts do not exit the habitat during solar storms.
-11. As a Habitat Operator, I want to view the real-time status of mars/telemetry/ life_support so that critical systems are verified as operational.
-12. As a Habitat Operator, I want to monitor the temperature and flow of the mars/telemetry/thermal_loop so that the habitat does not overheat.
-13. As a Habitat Operator, I want to monitor the voltage and current of the mars/telemetry/power_bus so that short circuits are prevented.
-14. As a Habitat Operator, I want to view the status of the mars/telemetry/airlock so that I know when the doors are pressurizing or depressurizing.
-15. As a Habitat Operator, I want to see the global mars/telemetry/ power_consumption so that energy rationing can be planned if necessary.
+### 2. Real-time Monitoring & Data Handling
+7. As a Habitat Operator, I want to monitor scalar REST sensors (e.g., Temperature, Pressure, Humidity) in real-time so that vital internal parameters are maintained.
+8. As a Habitat Operator, I want to view complex multi-metric sensors (e.g., PM 2.5 arrays, VOC chemistry) in unified widgets so that I can easily read grouped data.
+9. As a Habitat Operator, I want to monitor high-frequency telemetry streams (e.g., Radiation, Power) so that I can react instantly to external anomalies.
+10. As a System Administrator, I want the backend to normalize all heterogeneous REST and Stream payloads into a standard internal event format so that the system processes everything uniformly. *(NFR: Strict architectural adherence to the unified internal StandardEvent schema)*
+11. As a System Administrator, I want the State API service to maintain an in-memory cache of the latest readings so that the UI updates fast and without heavy DB queries. *(NFR: Sensor states must be retrievable with sub-millisecond latency to prevent bottlenecks)*
 
-### Manual Actuator Control
-16. As a Habitat Operator, I want a dashboard button to manually toggle the cooling_fan so that I can force a temperature drop. (NFR: The UI must update the actuator state via REST POST request)
-17. As a Habitat Operator, I want to be able to toggle the life_support_vent so that I can manually correct oxygen levels.
-18. As a Habitat Operator, I want to be able to toggle the airlock_shield so that I can manually protect the base from radiation.
-19. As a Habitat Operator, I want to toggle the heating_unit so that the temperature does not drop below the survival threshold.
+### 3. Manual Actuator Control
+12. As a Habitat Operator, I want a dashboard button to manually toggle the `cooling_fan` so that I can force a temperature drop.
+13. As a Habitat Operator, I want to be able to manually toggle the `life_support_vent` so that I can correct oxygen levels.
+14. As a Habitat Operator, I want to be able to manually toggle the `airlock_shield` so that I can protect the base from radiation.
+15. As a Habitat Operator, I want to manually toggle the `heating_unit` so that the temperature does not drop below the survival threshold.
+16. As a Habitat Operator, I want to visually monitor the actuators through a real-time surveillance video-camera, so that I know everything is fine. *(NFR: Video feed components must not block or degrade the performance of real-time telemetry UI rendering)*
+17. As a System Administrator, I want manual actuator toggles to trigger a REST POST request to the simulator so that the external physical system is updated correctly. *(NFR: The UI must update the actuator state via an asynchronous REST POST request, maintaining Command-Query separation)*
 
-### Automation Rule Management (Dashboard)
-20. As a Habitat Operator, I want a front-end interface to create a new IF-THEN rule so that the system can react autonomously to environmental changes. (NFR: Rules must be saved in a persistent database)
-21. As a Habitat Operator, I want the automation engine to immediately execute the target action (e.g., turn an actuator ON or OFF) whenever a rule's condition is met, so that the habitat can react autonomously.
-22. As a Habitat Operator, I want the dashboard to automatically update the displayed state of an actuator whenever it is modified by an automation rule, so that I am always aware of the system's current status in real-time. (NFR: The UI must update via WebSocket/Socket.io without refreshing)
-23. As a Habitat Operator, I want to be able to delete an existing rule, so that I can remove obsolete or incorrect automations.
-24. As a Habitat Operator, I want to view the list of all active automation rules via the frontend, so that I have an overview of the automatic controls in place.
-25. As a Habitat Operator, I want to receive real-time alert notifications (pop-up) on the dashboard, so that I am aware whenever an automation rule is triggered.
+### 4. Rule Management (CRUD)
+18. As a Habitat Operator, I want to view a list of all active automation rules via the frontend so that I know what automated controls are governing the base.
+19. As a Habitat Operator, I want a frontend form to create a new IF-THEN rule so that the system can adapt to new environmental conditions.
+20. As a Habitat Operator, I want to be able to delete an existing rule from the interface so that I can remove obsolete automations.
+21. As a System Administrator, I want automation rules to be persisted in a database (MongoDB) so that they survive a system restart. *(NFR: Rules must be saved in a persistent database to survive container crashes or docker-compose down)*
+
+### 5. Automation Execution & Alerts
+22. As a Habitat Operator, I want the dashboard to automatically update an actuator's UI toggle when it is modified by an automation so that I see the real-time status without refreshing. *(NFR: The UI must update via WebSocket/Socket.io without refreshing the browser)*
+23. As a Habitat Operator, I want to receive real-time alert pop-ups on the dashboard when a rule triggers so that I am immediately notified of the autonomous action.
+24. As a System Administrator, I want the Automation Engine to evaluate incoming events dynamically against active rules so that thresholds are monitored constantly.
+25. As a System Administrator, I want the Engine to automatically send a POST command to the actuator when a rule triggers so that the habitat reacts autonomously. *(NFR: Action execution must be decoupled and asynchronous to avoid blocking the event consumption loop)*
+26. As a System Administrator, I want the Engine to check the current state of an actuator before triggering it so that the system avoids spamming the simulator with redundant commands. *(NFR: The Automation Engine must implement idempotency to prevent redundant network calls)*
+
 
 
 ## 3. Standard Event Schema
