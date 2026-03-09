@@ -50,12 +50,13 @@ To keep the system design focused, we identified 3 main user personas:
 20. As a System Administrator, I want a frontend interface to create a new IF-THEN rule so that the system can react autonomously to environmental changes. (NFR: Rules must be saved in a persistent database)
 21. As a System Administrator, I want to view the list of all active automation rules via the frontend so that I have an overview of the automatic controls in place.
 22. As a System Administrator, I want to be able to delete or disable an existing rule so that I can remove obsolete or incorrect automations.
+23. As a System Administrator, I want warning popup on the dashboard whenever an autamation rule is hitted so that i can be adviced when an actuator is turned on or off.
 
 ### Automation Execution (Backend)
-23. As a Habitat Operator, I want the system to automatically turn ON the cooling_fan if the temperature_c > 28.0 so that the habitat does not overheat without manual intervention.
-24. As a Safety Officer, I want the life_support_vent to turn ON automatically if the oxygen_percent < 19.5 so that personnel do not suffocate.
-25. As a Safety Officer, I want the airlock_shield to turn ON automatically if the radiation_uSv_h > 0.5 so that astronauts are protected from solar storms.
-26. As a Habitat Operator, I want the heating_unit to turn ON automatically if the temperature_c < 15.0 so that the plants and crew do not freeze.
+24. As a Habitat Operator, I want the system to automatically turn ON the cooling_fan if the temperature_c > 28.0 so that the habitat does not overheat without manual intervention.
+25. As a Safety Officer, I want the life_support_vent to turn ON automatically if the oxygen_percent < 19.5 so that personnel do not suffocate.
+26. As a Safety Officer, I want the airlock_shield to turn ON automatically if the radiation_uSv_h > 0.5 so that astronauts are protected from solar storms.
+27. As a Habitat Operator, I want the heating_unit to turn ON automatically if the temperature_c < 15.0 so that the plants and crew do not freeze.
 
 
 
