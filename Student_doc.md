@@ -43,7 +43,7 @@ Navigate to the source directory, build the Docker images, and start all the con
 21. As a System Administrator, I want automation rules to be persisted in a database (MongoDB) so that they survive a system restart. *(NFR: Rules must be saved in a persistent database to survive container crashes or docker-compose down)*
 
 ### 5. Automation Execution & Alerts
-22. As a Habitat Operator, I want the dashboard to automatically update an actuator's UI toggle when it is modified by an automation so that I see the real-time status without refreshing. *(NFR: The UI must update via WebSocket/Socket.io without refreshing the browser)*
+22. As a Habitat Operator, I want the dashboard to automatically update an actuator's UI toggle when it is modified by an automation so that I see the real-time status without refreshing. *(NFR: The UI must update via Socket.io without refreshing the browser)*
 23. As a Habitat Operator, I want to receive real-time alert notifications on the dashboard when a rule triggers so that I am immediately notified of the autonomous action.
 24. As a Habitat Operator, I want a dedicated notification dropdown menu on the dashboard so that I can review the history of recent alerts.
 25. As a Habitat Operator, I want to be able to dismiss individual alerts from the notification panel so that I can keep the interface clean and focus on unresolved issues.
