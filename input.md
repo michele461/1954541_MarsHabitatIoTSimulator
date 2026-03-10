@@ -24,11 +24,11 @@ The system consists of the following macro-components:
 6. As a Habitat Operator, I want to check the connection with the server from the dashboard via a health status, so that I know if I am really connected.
 
 ### 2. Real-time Monitoring & Data Handling
-7. As a Habitat Operator, I want to monitor scalar REST sensors (e.g., Temperature, Pressure, Humidity) in real-time so that vital internal parameters are maintained.
-8. As a Habitat Operator, I want to view complex multi-metric sensors (e.g., PM 2.5 arrays, VOC chemistry) in unified widgets so that I can easily read grouped data.
-9. As a Habitat Operator, I want to monitor high-frequency telemetry streams (e.g., Radiation, Power) so that I can react instantly to external anomalies.
+7. As a Habitat Operator, I want to monitor scalar REST sensors in real-time so that vital internal parameters are maintained.
+8. As a Habitat Operator, I want to view complex multi-metric sensors in unified widgets so that I can easily read grouped data.
+9. As a Habitat Operator, I want to monitor high-frequency telemetry streams so that I can react instantly to external anomalies.
 10. As a System Administrator, I want the backend to normalize all heterogeneous REST and Stream payloads into a standard internal event format so that the system processes everything uniformly. *(NFR: Strict architectural adherence to the unified internal StandardEvent schema)*
-11. As a System Administrator, I want the State API service to maintain an in-memory cache of the latest readings so that the UI updates fast and without heavy DB queries.
+11. As a System Administrator, I want the State API service to maintain an in-memory cache of the latest readings so that the amount of network calls can be reduced.
 
 ### 3. Manual Actuator Control
 12. As a Habitat Operator, I want a dashboard button to manually toggle the `cooling_fan` so that I can force a temperature drop.
@@ -46,10 +46,12 @@ The system consists of the following macro-components:
 
 ### 5. Automation Execution & Alerts
 22. As a Habitat Operator, I want the dashboard to automatically update an actuator's UI toggle when it is modified by an automation so that I see the real-time status without refreshing. *(NFR: The UI must update via WebSocket/Socket.io without refreshing the browser)*
-23. As a Habitat Operator, I want to receive real-time alert pop-ups on the dashboard when a rule triggers so that I am immediately notified of the autonomous action.
-24. As a System Administrator, I want the Automation Engine to evaluate incoming events dynamically against active rules so that thresholds are monitored constantly.
-25. As a System Administrator, I want the Engine to automatically send a POST command to the actuator when a rule triggers so that the habitat reacts autonomously.
-26. As a System Administrator, I want the Engine to check the current state of an actuator before triggering it so that the system avoids spamming the simulator with redundant commands.
+23. As a Habitat Operator, I want to receive real-time alert notifications on the dashboard when a rule triggers so that I am immediately notified of the autonomous action.
+24. As a Habitat Operator, I want a dedicated notification dropdown menu on the dashboard so that I can review the history of recent alerts.
+25. As a Habitat Operator, I want to be able to dismiss individual alerts from the notification panel so that I can keep the interface clean and focus on unresolved issues.
+26. As a System Administrator, I want the Automation Engine to evaluate incoming events dynamically against active rules so that thresholds are monitored constantly.
+27. As a System Administrator, I want the Engine to automatically send a POST command to the actuator when a rule triggers so that the habitat reacts autonomously.
+28. As a System Administrator, I want the Engine to check the current state of an actuator before triggering it so that the system avoids spamming the simulator with redundant commands.
 
 
 
